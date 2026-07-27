@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Derived operator time now considers every measured descendant, and the Time list value shows the derived operator contribution instead of inclusive elapsed time.
+- Collapse controls no longer fall through to row selection or begin horizontal list panning.
+
 ## [0.2.0] - 2026-07-27
 
 ### Changed

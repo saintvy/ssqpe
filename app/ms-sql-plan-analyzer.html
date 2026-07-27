@@ -75,8 +75,8 @@
     .tree-name { position: relative; z-index: 0; min-width: 0; flex: 1 1 auto; overflow: hidden; }
     .tree-op { display: block; padding-left: calc(var(--depth) * 15px + 29px); font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tree-object { display: block; padding-left: calc(var(--depth) * 15px + 29px); color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tree-toggle { position: absolute; left: calc(6px + var(--depth) * 15px); top: 4px; width: 27px; height: 31px; display: grid; place-items: center; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 21px; line-height: 1; opacity: 0; pointer-events: none; transition: opacity .1s, color .1s; }
-    .tree-row:hover .tree-toggle, .tree-toggle:focus-visible { opacity: 1; pointer-events: auto; }
+    .tree-toggle { position: absolute; left: calc(6px + var(--depth) * 15px); top: 4px; z-index: 4; width: 27px; height: 31px; display: grid; place-items: center; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 21px; line-height: 1; opacity: 0; pointer-events: auto; transition: opacity .1s, color .1s; }
+    .tree-row:hover .tree-toggle, .tree-toggle:focus-visible { opacity: 1; }
     .tree-toggle:hover { color: var(--text); }
     .tree-metrics { position: sticky; right: 0; z-index: 5; flex: 0 0 215px; width: 215px; height: 100%; margin-right: -9px; padding: 0 9px; display: flex; align-items: center; gap: 7px; background: var(--tree-row-bg); }
     .tree-bar { flex: 0 0 118px; width: 118px; height: 18px; position: relative; isolation: isolate; overflow: hidden; border-radius: 4px; background-color: #0b1018; background-image: linear-gradient(#0b1018,#0b1018); box-shadow: inset 0 0 0 1px #2b3546; }
@@ -305,7 +305,7 @@
         subtree: 'Поддерево', currentNode: 'Текущий оператор', estimate: 'Оценка', actual: 'Факт', noActualRows: 'Фактическое количество строк отсутствует', underestimated: 'Недооценено: фактических строк больше оценки', overestimated: 'Переоценено: фактических строк меньше оценки', closeEstimate: 'Оценка близка к факту', underShort: 'недооценка', overShort: 'переоценка', closeShort: 'до 10×', rowSeverity2: 'ошибка >10×', rowSeverity3: 'ошибка >100×', rowSeverity4: 'ошибка >1000×',
         clickNode: 'Нажмите, чтобы открыть характеристики', rowsEstimateActual: 'Строки: оценка / факт', timeCost: 'Время / стоимость', executions: 'Выполнения', outputColumns: 'Выходные столбцы',
         flagWarning: 'Предупреждение оператора', flagParallel: 'Параллельное выполнение', flagBatch: 'Пакетный режим выполнения', slowNode: 'Медленный оператор: {percent}% общего времени ({time})', badRowEstimate: 'Плохая оценка строк: {direction} в {factor}× (оценка {estimated}, факт {actual})', underDirection: 'недооценка', overDirection: 'переоценка',
-        operator: 'Оператор', primaryMetrics: 'Основные показатели', estimatedRows: 'Оценка строк', actualRows: 'Фактические строки', actualTime: 'Фактическое elapsed-время', exclusiveTime: 'Собственное elapsed-время (расчётное)', exclusiveTimeExplanation: 'Приближение критического пути: elapsed-время оператора минус максимальное доступное elapsed-время на его дочерних путях. Если у дочернего оператора время отсутствует, поиск продолжается до ближайших измеренных потомков. Из-за параллельных и перекрывающихся конвейеров это не точный счётчик SQL Server.', subtreeCost: 'Стоимость поддерева', selfCost: 'Собственная стоимость', mode: 'Режим',
+        operator: 'Оператор', primaryMetrics: 'Основные показатели', estimatedRows: 'Оценка строк', actualRows: 'Фактические строки', actualTime: 'Фактическое elapsed-время', exclusiveTime: 'Собственное elapsed-время (расчётное)', exclusiveTimeExplanation: 'Приближение критического пути: elapsed-время оператора минус максимальное elapsed-время среди всех его измеренных потомков. Из-за параллельных и перекрывающихся конвейеров это не точный счётчик SQL Server.', subtreeCost: 'Стоимость поддерева', selfCost: 'Собственная стоимость', mode: 'Режим',
         ioAndCache: 'Ввод-вывод и кеш', logicalReads: 'Логические чтения', physicalReads: 'Физические чтения', readAhead: 'Упреждающие чтения', lobLogicalReads: 'Логические чтения LOB', lobPhysicalReads: 'Физические чтения LOB', scans: 'Сканирования',
         warnings: 'Предупреждения', object: 'Объект', operandsPredicates: 'Операнды и предикаты', definedValues: 'Определяемые значения', optimizerEstimates: 'Оценки оптимизатора', averageRowSize: 'Средний размер строки', estimatedRowsRead: 'Оценка прочитанных строк', tableCardinality: 'Кардинальность таблицы', showPlanAttributes: 'Атрибуты ShowPlan', threads: 'Потоки', thread: 'Поток', elapsed: 'Время',
         reusableSubplan: 'Повторно используемый подплан {number}', calls: 'вызовов',
@@ -326,7 +326,7 @@
         subtree: 'Subtree', currentNode: 'Current operator', estimate: 'Estimate', actual: 'Actual', noActualRows: 'Actual row count is unavailable', underestimated: 'Underestimated: actual rows exceed the estimate', overestimated: 'Overestimated: actual rows are below the estimate', closeEstimate: 'Estimate is close to actual', underShort: 'underestimated', overShort: 'overestimated', closeShort: 'up to 10×', rowSeverity2: 'error >10×', rowSeverity3: 'error >100×', rowSeverity4: 'error >1000×',
         clickNode: 'Click to open operator details', rowsEstimateActual: 'Rows: estimate / actual', timeCost: 'Time / cost', executions: 'Executions', outputColumns: 'Output columns',
         flagWarning: 'Operator warning', flagParallel: 'Parallel execution', flagBatch: 'Batch execution mode', slowNode: 'Slow operator: {percent}% of total time ({time})', badRowEstimate: 'Bad row estimate: {direction} by {factor}× (estimated {estimated}, actual {actual})', underDirection: 'underestimated', overDirection: 'overestimated',
-        operator: 'Operator', primaryMetrics: 'Primary metrics', estimatedRows: 'Estimated rows', actualRows: 'Actual rows', actualTime: 'Actual elapsed time', exclusiveTime: 'Exclusive elapsed time (derived)', exclusiveTimeExplanation: 'Critical-path approximation: the operator elapsed time minus the greatest available elapsed time on its child paths. If a child has no elapsed time, the search continues to the nearest measured descendants. Parallel and overlapping pipelines mean this is not an exact SQL Server counter.', subtreeCost: 'Subtree cost', selfCost: 'Self cost', mode: 'Mode',
+        operator: 'Operator', primaryMetrics: 'Primary metrics', estimatedRows: 'Estimated rows', actualRows: 'Actual rows', actualTime: 'Actual elapsed time', exclusiveTime: 'Exclusive elapsed time (derived)', exclusiveTimeExplanation: 'Critical-path approximation: the operator elapsed time minus the greatest elapsed time among all of its measured descendants. Parallel and overlapping pipelines mean this is not an exact SQL Server counter.', subtreeCost: 'Subtree cost', selfCost: 'Self cost', mode: 'Mode',
         ioAndCache: 'I/O and cache', logicalReads: 'Logical reads', physicalReads: 'Physical reads', readAhead: 'Read-ahead reads', lobLogicalReads: 'LOB logical reads', lobPhysicalReads: 'LOB physical reads', scans: 'Scans',
         warnings: 'Warnings', object: 'Object', operandsPredicates: 'Operands and predicates', definedValues: 'Defined values', optimizerEstimates: 'Optimizer estimates', averageRowSize: 'Average row size', estimatedRowsRead: 'Estimated rows read', tableCardinality: 'Table cardinality', showPlanAttributes: 'ShowPlan attributes', threads: 'Threads', thread: 'Thread', elapsed: 'Elapsed',
         reusableSubplan: 'Reusable subplan {number}', calls: 'calls',
@@ -594,14 +594,9 @@
       node.subtreeSize = 1 + node.children.reduce((s, c) => s + c.subtreeSize, 0);
       node.selfCost = Math.max(0, node.estimatedCost - node.children.reduce((s, c) => s + c.estimatedCost, 0));
       node.elapsed = runtime?.hasElapsed ? runtime.ActualElapsedms : null;
-      const measuredChildTimes = [];
-      // Lightweight untimed operators must not break the measured critical path.
-      const collectMeasuredFrontier = child => {
-        if (child.elapsed !== null) measuredChildTimes.push(child.elapsed);
-        else child.children.forEach(collectMeasuredFrontier);
-      };
-      node.children.forEach(collectMeasuredFrontier);
-      node.selfTime = node.elapsed === null ? null : Math.max(0, node.elapsed - Math.max(0, ...measuredChildTimes));
+      const greatestDescendantElapsed = Math.max(0, ...node.children.map(child => child.maxSubtreeElapsed));
+      node.selfTime = node.elapsed === null ? null : Math.max(0, node.elapsed - greatestDescendantElapsed);
+      node.maxSubtreeElapsed = Math.max(node.elapsed || 0, greatestDescendantElapsed);
       return node;
     }
 
@@ -885,12 +880,13 @@
         const v = metricValues(n);
         const subWidth = Math.min(100, 100 * (v.subtree || 0) / maximum);
         const selfWidth = Math.min(subWidth, 100 * (v.self || 0) / maximum);
-        const value = state.metric === 'time' ? formatMs(v.subtree) : formatNumber(v.subtree);
+        const subtreeValue = state.metric === 'time' ? formatMs(v.subtree) : formatNumber(v.subtree);
+        const value = state.metric === 'time' ? formatMs(v.self) : subtreeValue;
         return `<div class="tree-row ${n.id===state.selectedId?'selected':''}" data-id="${esc(n.id)}" style="--depth:${n.depth}">
           ${treeToggle(n)}
           <div class="tree-name"><span class="tree-op">${n.duplicateGroup?'<span class="call-mark">↗</span>':''}${esc(n.physical)}</span><span class="tree-object">${esc(n.objectLabel || n.logical || '')}</span></div>
-          <div class="tree-metrics"><div class="tree-bar" title="${esc(t('subtree'))}: ${esc(value)}; ${esc(state.metric==='time'?t('exclusiveTime'):t('selfCost'))}: ${esc(state.metric==='time'?formatMs(v.self):formatNumber(v.self))}"><span class="subtree" style="width:${subWidth}%;background:${color}"></span><span class="self" style="width:${selfWidth}%;background:${color}"></span></div>
-          <div class="tree-value">${esc(value)}</div></div>
+          <div class="tree-metrics"><div class="tree-bar" title="${esc(t('subtree'))}: ${esc(subtreeValue)}; ${esc(state.metric==='time'?t('exclusiveTime'):t('selfCost'))}: ${esc(state.metric==='time'?formatMs(v.self):formatNumber(v.self))}"><span class="subtree" style="width:${subWidth}%;background:${color}"></span><span class="self" style="width:${selfWidth}%;background:${color}"></span></div>
+          <div class="tree-value" title="${esc(state.metric==='time'?t('exclusiveTime'):t('subtree'))}">${esc(value)}</div></div>
         </div>`;
       }).join('');
       const contentWidth = 390 + Math.max(0, ...nodes.map(n => n.depth)) * 15;
@@ -1165,7 +1161,7 @@
     document.addEventListener('drop',e=>readFile(e.dataTransfer.files[0]));
     els.statementTabs.addEventListener('click',e=>{ const b=e.target.closest('[data-index]'); if(!b)return; state.statementIndex=Number(b.dataset.index); const s=currentStatement(); state.selectedId=null; state.collapsedIds.clear(); els.detailsDrawer.classList.remove('open'); renderAll(); const rootId=s.roots[0]?.id; if(rootId)requestAnimationFrame(()=>centerGraphNode(rootId,'auto')); });
     els.metricSwitch.addEventListener('click',e=>{ const b=e.target.closest('[data-metric]'); if(!b)return; state.metric=b.dataset.metric; renderTree(); });
-    els.tree.addEventListener('click',e=>{if(state.dragMoved){state.dragMoved=false;return;}const toggle=e.target.closest('[data-toggle]');if(toggle){const id=toggle.dataset.toggle;if(state.collapsedIds.has(id))state.collapsedIds.delete(id);else state.collapsedIds.add(id);renderTree();return;}const row=e.target.closest('[data-id]');if(row)selectNode(row.dataset.id,{centerGraph:true});});
+    els.tree.addEventListener('click',e=>{const toggle=e.target.closest('[data-toggle]');if(toggle){e.preventDefault();e.stopPropagation();state.dragMoved=false;const id=toggle.dataset.toggle;if(state.collapsedIds.has(id))state.collapsedIds.delete(id);else state.collapsedIds.add(id);renderTree();return;}if(state.dragMoved){state.dragMoved=false;return;}const row=e.target.closest('[data-id]');if(row)selectNode(row.dataset.id,{centerGraph:true});});
     els.canvasWrap.addEventListener('click',e=>{if(state.dragMoved){state.dragMoved=false;return;}const card=e.target.closest('.node-card[data-id]');selectNode(card?.dataset.id||null,{centerTree:Boolean(card)});});
     els.closeDetails.onclick=()=>els.detailsDrawer.classList.remove('open');
     els.hideDetailsCheck.onchange=()=>setDetailsLocked(els.hideDetailsCheck.checked);
@@ -1195,7 +1191,7 @@
     els.canvasWrap.addEventListener('wheel',e=>{e.preventDefault();const scale=e.deltaMode===1?33:e.deltaMode===2?300:1;const deltaX=e.deltaX*scale,deltaY=e.deltaY*scale;if(!e.ctrlKey){els.canvasWrap.scrollBy({left:deltaX,top:deltaY});return;}const old=state.zoom;const factor=Math.exp(-deltaY*.0015);const next=Math.max(.35,Math.min(2.5,old*factor));if(Math.abs(next-old)<.001)return;const rect=els.canvasWrap.getBoundingClientRect();const px=e.clientX-rect.left,py=e.clientY-rect.top;const contentX=(els.canvasWrap.scrollLeft+px)/old,contentY=(els.canvasWrap.scrollTop+py)/old;state.zoom=next;updateZoom();requestAnimationFrame(()=>{els.canvasWrap.scrollLeft=contentX*next-px;els.canvasWrap.scrollTop=contentY*next-py;});},{passive:false});
 
     let treePan = null;
-    els.tree.addEventListener('pointerdown',e=>{if(e.button!==0)return;treePan={pointerId:e.pointerId,x:e.clientX,y:e.clientY,left:els.tree.scrollLeft,captured:false};state.dragMoved=false;});
+    els.tree.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('[data-toggle]'))return;treePan={pointerId:e.pointerId,x:e.clientX,y:e.clientY,left:els.tree.scrollLeft,captured:false};state.dragMoved=false;});
     els.tree.addEventListener('pointermove',e=>{if(!treePan)return;const dx=e.clientX-treePan.x,dy=e.clientY-treePan.y;if(Math.abs(dx)+Math.abs(dy)>6)state.dragMoved=true;if(!treePan.captured&&Math.abs(dx)<=6)return;if(!treePan.captured){treePan.captured=true;els.tree.setPointerCapture(treePan.pointerId);els.tree.classList.add('panning');}e.preventDefault();els.tree.scrollLeft=treePan.left-dx;});
     const endTreePan=()=>{treePan=null;els.tree.classList.remove('panning');};
     els.tree.addEventListener('pointerup',endTreePan);els.tree.addEventListener('pointercancel',endTreePan);
