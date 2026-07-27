@@ -33,7 +33,10 @@
     .brand { display: flex; align-items: center; gap: 10px; font-weight: 720; letter-spacing: .1px; white-space: nowrap; }
     .logo { min-width: 50px; height: 27px; padding: 0 7px; display: grid; place-items: center; border-radius: 8px; color: #08131b; background: linear-gradient(135deg, var(--accent), #5fe0bd); font-size: 12px; font-weight: 900; letter-spacing: .4px; }
     .top-actions { display: flex; gap: 8px; margin-left: auto; }
-    .language-select { color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; padding: 6px 8px; cursor: pointer; }
+    .language-control { position: relative; display: inline-flex; align-items: center; min-width: 118px; }
+    .language-flag { position: absolute; left: 9px; z-index: 1; display: grid; place-items: center; width: 22px; height: 14px; border-radius: 2px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255,255,255,.24); pointer-events: none; }
+    .language-flag svg { display: block; width: 100%; height: 100%; }
+    .language-select { width: 100%; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; padding: 6px 8px 6px 39px; cursor: pointer; }
     .btn { border: 1px solid var(--border); background: var(--surface-2); border-radius: 7px; padding: 7px 11px; cursor: pointer; transition: .15s; white-space: nowrap; }
     .btn:hover { border-color: #526079; background: var(--surface-3); }
     .btn.primary { color: #07131c; border-color: transparent; background: var(--accent); font-weight: 700; }
@@ -63,23 +66,33 @@
     .segmented { display: inline-flex; padding: 2px; gap: 2px; background: #10151e; border: 1px solid var(--border); border-radius: 7px; }
     .segmented button { border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 4px 8px; border-radius: 5px; }
     .segmented button.active { color: var(--text); background: var(--surface-3); }
-    .tree { overflow: auto; padding: 7px 0 24px; cursor: default; user-select: none; }
-    .tree.ctrl-panning { cursor: grabbing; }
-    .tree-row { position: relative; width: 100%; height: 39px; display: flex; align-items: center; gap: 7px; padding: 0 9px; cursor: pointer; border-left: 2px solid transparent; }
-    .tree-row:hover { background: #202735; }
-    .tree-row.selected { background: #233148; border-left-color: var(--accent); }
-    .tree-name { min-width: 0; flex: 1 1 auto; overflow: hidden; }
-    .tree-op { display: block; padding-left: calc(var(--depth) * 15px); font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tree-object { display: block; padding-left: calc(var(--depth) * 15px); color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tree-bar { flex: 0 0 118px; width: 118px; height: 18px; position: relative; overflow: hidden; border-radius: 4px; background: #10151e; box-shadow: inset 0 0 0 1px #2b3546; }
-    .tree-bar .subtree, .tree-bar .self { position: absolute; left: 0; top: 0; bottom: 0; min-width: 0; }
+    .tree { overflow: auto; padding: 7px 0 24px; cursor: grab; user-select: none; overscroll-behavior: contain; }
+    .tree.panning { cursor: grabbing; }
+    .tree-content { min-width: 100%; }
+    .tree-row { --tree-row-bg: var(--surface); position: relative; isolation: isolate; width: 100%; height: 39px; display: flex; align-items: center; gap: 7px; padding: 0 9px; cursor: pointer; border-left: 2px solid transparent; }
+    .tree-row:hover { --tree-row-bg: #202735; background: var(--tree-row-bg); }
+    .tree-row.selected { --tree-row-bg: #233148; background: var(--tree-row-bg); border-left-color: var(--accent); }
+    .tree-name { position: relative; z-index: 0; min-width: 0; flex: 1 1 auto; overflow: hidden; }
+    .tree-op { display: block; padding-left: calc(var(--depth) * 15px + 29px); font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tree-object { display: block; padding-left: calc(var(--depth) * 15px + 29px); color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tree-toggle { position: absolute; left: calc(6px + var(--depth) * 15px); top: 4px; width: 27px; height: 31px; display: grid; place-items: center; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 21px; line-height: 1; opacity: 0; pointer-events: none; transition: opacity .1s, color .1s; }
+    .tree-row:hover .tree-toggle, .tree-toggle:focus-visible { opacity: 1; pointer-events: auto; }
+    .tree-toggle:hover { color: var(--text); }
+    .tree-metrics { position: sticky; right: 0; z-index: 5; flex: 0 0 215px; width: 215px; height: 100%; margin-right: -9px; padding: 0 9px; display: flex; align-items: center; gap: 7px; background: var(--tree-row-bg); }
+    .tree-bar { flex: 0 0 118px; width: 118px; height: 18px; position: relative; isolation: isolate; overflow: hidden; border-radius: 4px; background-color: #0b1018; background-image: linear-gradient(#0b1018,#0b1018); box-shadow: inset 0 0 0 1px #2b3546; }
+    .tree-bar::before { content: ''; position: absolute; inset: 0; z-index: 0; background: #0b1018; }
+    .tree-bar .subtree, .tree-bar .self { position: absolute; z-index: 1; left: 0; top: 0; bottom: 0; min-width: 0; }
     .tree-bar .subtree { opacity: .27; }
     .tree-bar .self { opacity: .92; }
-    .tree-bar .estimate, .tree-bar .actual { position: absolute; left: 0; top: 0; bottom: 0; }
-    .tree-bar .estimate { background: #7d8798; opacity: .35; }
-    .tree-bar .actual.under { background: #ff6574; }
-    .tree-bar .actual.over { background: #5c9fff; }
-    .tree-bar .actual.close { background: #4fd0a4; }
+    .tree-bar .rows-segment { position: absolute; z-index: 1; top: 0; bottom: 0; min-width: 0; }
+    .tree-bar .rows-estimate.severity-0 { background: #34485a; }
+    .tree-bar .rows-actual.severity-0 { background: #4fd0a4; }
+    .tree-bar .rows-estimate.severity-2 { background: #68591f; }
+    .tree-bar .rows-actual.severity-2 { background: #fddb61; }
+    .tree-bar .rows-estimate.severity-3 { background: #683d17; }
+    .tree-bar .rows-actual.severity-3 { background: #ee8800; }
+    .tree-bar .rows-estimate.severity-4 { background: #68252c; }
+    .tree-bar .rows-actual.severity-4 { background: #ff5964; }
     .tree-value { flex: 0 0 72px; width: 72px; text-align: right; color: #c4cbd8; font-variant-numeric: tabular-nums; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .call-mark { color: var(--accent-2); margin-right: 4px; }
     .main { min-width: 0; min-height: 0; position: relative; overflow: hidden; background: radial-gradient(circle at 10% 0%, #192233 0, transparent 38%), var(--bg); }
@@ -155,6 +168,7 @@
     .details-handle.visible { display: block; }
     .detail-section { margin-bottom: 16px; }
     .detail-section h3 { margin: 0 0 7px; color: #c8d1df; font-size: 11px; text-transform: uppercase; letter-spacing: .7px; }
+    .detail-note { margin-top: 7px; color: var(--muted); font-size: 11px; line-height: 1.45; }
     .kv { display: grid; grid-template-columns: minmax(120px, 44%) minmax(0, 1fr); border-top: 1px solid #2b3444; }
     .kv > div { padding: 5px 2px; overflow-wrap: anywhere; }
     .kv .k { color: var(--muted); }
@@ -188,9 +202,11 @@
     @media (max-width: 850px) {
       :root { --left-width: 310px; }
       .brand span:last-child { display: none; }
+      .tree-metrics { flex-basis: 171px; width: 171px; }
       .tree-bar { flex-basis: 88px; width: 88px; }
       .tree-value { flex-basis: 58px; width: 58px; }
     }
+    @media (hover: none) { .tree-toggle { opacity: 1; pointer-events: auto; } }
   </style>
 </head>
 <body>
@@ -200,7 +216,7 @@
       <div class="top-actions">
         <button class="btn hidden" id="menuBtn" data-i18n="backToMenu"></button>
         <button class="btn hidden" id="historyBtn"><span data-i18n="history"></span> <span id="historyCount"></span></button>
-        <select class="language-select" id="languageSelect" data-i18n-title="language"></select>
+        <label class="language-control"><span class="language-flag" id="languageFlag" aria-hidden="true"></span><select class="language-select" id="languageSelect" data-i18n-title="language"></select></label>
         <input class="file-input" id="fileInput" type="file" accept=".sqlplan,.xml,.sqplan,text/xml,application/xml">
       </div>
     </header>
@@ -251,7 +267,6 @@
             <span class="spacer"></span>
             <span class="zoom-label" id="zoomLabel">100%</span>
             <button class="btn" id="fitBtn" data-i18n="resetView"></button>
-            <button class="btn" id="detailsBtn" data-i18n="details"></button>
           </div>
           <div class="canvas-wrap" id="canvasWrap"><div class="graph" id="graph"></div></div>
           <aside class="details-drawer" id="detailsDrawer">
@@ -278,17 +293,17 @@
 
     const I18N = {
       ru: {
-        languageName: '🇷🇺 Русский', backToMenu: 'Возврат в меню', history: 'История', language: 'Язык интерфейса', savedPlans: 'Сохранённые планы', clear: 'Очистить',
+        languageName: 'Русский', backToMenu: 'Возврат в меню', history: 'История', language: 'Язык интерфейса', savedPlans: 'Сохранённые планы', clear: 'Очистить',
         metric: 'Показатель', time: 'Время', cost: 'Стоимость', rows: 'Строки', resizeSidebar: 'Изменить ширину панели',
         openExecutionPlan: 'Откройте план выполнения SQL Server', dropDescription: 'Перетащите сюда файл <b>.sqlplan</b> из SSMS, выберите его с диска или вставьте ShowPlan XML. Данные не покидают браузер.',
         planNamePlaceholder: 'Имя плана для истории (необязательно)', chooseFile: 'Выбрать файл', pastePlaceholder: 'Вставьте XML, начинающийся с <ShowPlanXML …>', parseXml: 'Разобрать XML',
-        resetView: 'Сбросить вид', details: 'Детали', keepDetailsHidden: 'Скрыть детали', showDetails: 'Показать детали', close: 'Закрыть', queryText: 'Текст запроса', showQuery: 'Показать SQL-текст', queryUnavailable: 'SQL-текст отсутствует',
+        resetView: 'Сбросить вид', details: 'Детали', keepDetailsHidden: 'Скрыть детали', showDetails: 'Показать детали', close: 'Закрыть', collapseSubtree: 'Свернуть дочернее поддерево', expandSubtree: 'Развернуть дочернее поддерево', queryText: 'Текст запроса', showQuery: 'Показать SQL-текст', queryUnavailable: 'SQL-текст отсутствует',
         actualPlan: 'Фактический', estimatedPlan: 'Оценочный', statementsShort: 'запр.', nodesShort: 'узлов', query: 'Запрос', queryNumber: 'Запрос {number}',
         noStatementGraph: 'В этом запросе нет графа операторов.', noGraphFromServer: 'Для этого запроса SQL Server не предоставил дерево операторов.', timeUnavailable: 'В XML отсутствует ActualElapsedms — фактическое время операторов неизвестно.',
-        subtree: 'Поддерево', currentNode: 'Текущий оператор', estimate: 'Оценка', actual: 'Факт', noActualRows: 'Фактическое количество строк отсутствует', underestimated: 'Недооценено: фактических строк больше оценки', overestimated: 'Переоценено: фактических строк меньше оценки', closeEstimate: 'Оценка близка к факту', underShort: 'недооценка', overShort: 'переоценка', closeShort: 'близко к факту',
+        subtree: 'Поддерево', currentNode: 'Текущий оператор', estimate: 'Оценка', actual: 'Факт', noActualRows: 'Фактическое количество строк отсутствует', underestimated: 'Недооценено: фактических строк больше оценки', overestimated: 'Переоценено: фактических строк меньше оценки', closeEstimate: 'Оценка близка к факту', underShort: 'недооценка', overShort: 'переоценка', closeShort: 'до 10×', rowSeverity2: 'ошибка >10×', rowSeverity3: 'ошибка >100×', rowSeverity4: 'ошибка >1000×',
         clickNode: 'Нажмите, чтобы открыть характеристики', rowsEstimateActual: 'Строки: оценка / факт', timeCost: 'Время / стоимость', executions: 'Выполнения', outputColumns: 'Выходные столбцы',
         flagWarning: 'Предупреждение оператора', flagParallel: 'Параллельное выполнение', flagBatch: 'Пакетный режим выполнения', slowNode: 'Медленный оператор: {percent}% общего времени ({time})', badRowEstimate: 'Плохая оценка строк: {direction} в {factor}× (оценка {estimated}, факт {actual})', underDirection: 'недооценка', overDirection: 'переоценка',
-        operator: 'Оператор', primaryMetrics: 'Основные показатели', estimatedRows: 'Оценка строк', actualRows: 'Фактические строки', actualTime: 'Фактическое время', subtreeCost: 'Стоимость поддерева', selfCost: 'Собственная стоимость', mode: 'Режим',
+        operator: 'Оператор', primaryMetrics: 'Основные показатели', estimatedRows: 'Оценка строк', actualRows: 'Фактические строки', actualTime: 'Фактическое elapsed-время', exclusiveTime: 'Собственное elapsed-время (расчётное)', exclusiveTimeExplanation: 'Приближение критического пути: elapsed-время оператора минус максимальное доступное elapsed-время на его дочерних путях. Если у дочернего оператора время отсутствует, поиск продолжается до ближайших измеренных потомков. Из-за параллельных и перекрывающихся конвейеров это не точный счётчик SQL Server.', subtreeCost: 'Стоимость поддерева', selfCost: 'Собственная стоимость', mode: 'Режим',
         ioAndCache: 'Ввод-вывод и кеш', logicalReads: 'Логические чтения', physicalReads: 'Физические чтения', readAhead: 'Упреждающие чтения', lobLogicalReads: 'Логические чтения LOB', lobPhysicalReads: 'Физические чтения LOB', scans: 'Сканирования',
         warnings: 'Предупреждения', object: 'Объект', operandsPredicates: 'Операнды и предикаты', definedValues: 'Определяемые значения', optimizerEstimates: 'Оценки оптимизатора', averageRowSize: 'Средний размер строки', estimatedRowsRead: 'Оценка прочитанных строк', tableCardinality: 'Кардинальность таблицы', showPlanAttributes: 'Атрибуты ShowPlan', threads: 'Потоки', thread: 'Поток', elapsed: 'Время',
         reusableSubplan: 'Повторно используемый подплан {number}', calls: 'вызовов',
@@ -299,17 +314,17 @@
         minute: 'мин', second: 'с', millisecond: 'мс', gigabyte: 'ГБ', megabyte: 'МБ', kilobyte: 'КБ', missing: '—'
       },
       en: {
-        languageName: '🇬🇧 English', backToMenu: 'Back to menu', history: 'History', language: 'Interface language', savedPlans: 'Saved plans', clear: 'Clear',
+        languageName: 'English', backToMenu: 'Back to menu', history: 'History', language: 'Interface language', savedPlans: 'Saved plans', clear: 'Clear',
         metric: 'Metric', time: 'Time', cost: 'Cost', rows: 'Rows', resizeSidebar: 'Resize sidebar',
         openExecutionPlan: 'Open a SQL Server execution plan', dropDescription: 'Drop an SSMS <b>.sqlplan</b> file here, choose one from disk, or paste ShowPlan XML. Your data never leaves the browser.',
         planNamePlaceholder: 'Plan name for history (optional)', chooseFile: 'Choose file', pastePlaceholder: 'Paste XML starting with <ShowPlanXML …>', parseXml: 'Parse XML',
-        resetView: 'Reset view', details: 'Details', keepDetailsHidden: 'Keep details hidden', showDetails: 'Show details', close: 'Close', queryText: 'Query text', showQuery: 'Show SQL text', queryUnavailable: 'SQL text unavailable',
+        resetView: 'Reset view', details: 'Details', keepDetailsHidden: 'Keep details hidden', showDetails: 'Show details', close: 'Close', collapseSubtree: 'Collapse child subtree', expandSubtree: 'Expand child subtree', queryText: 'Query text', showQuery: 'Show SQL text', queryUnavailable: 'SQL text unavailable',
         actualPlan: 'Actual', estimatedPlan: 'Estimated', statementsShort: 'queries', nodesShort: 'nodes', query: 'Query', queryNumber: 'Query {number}',
         noStatementGraph: 'This query has no operator graph.', noGraphFromServer: 'SQL Server did not provide an operator tree for this query.', timeUnavailable: 'ActualElapsedms is absent from the XML — operator elapsed time is unknown.',
-        subtree: 'Subtree', currentNode: 'Current operator', estimate: 'Estimate', actual: 'Actual', noActualRows: 'Actual row count is unavailable', underestimated: 'Underestimated: actual rows exceed the estimate', overestimated: 'Overestimated: actual rows are below the estimate', closeEstimate: 'Estimate is close to actual', underShort: 'underestimated', overShort: 'overestimated', closeShort: 'close to actual',
+        subtree: 'Subtree', currentNode: 'Current operator', estimate: 'Estimate', actual: 'Actual', noActualRows: 'Actual row count is unavailable', underestimated: 'Underestimated: actual rows exceed the estimate', overestimated: 'Overestimated: actual rows are below the estimate', closeEstimate: 'Estimate is close to actual', underShort: 'underestimated', overShort: 'overestimated', closeShort: 'up to 10×', rowSeverity2: 'error >10×', rowSeverity3: 'error >100×', rowSeverity4: 'error >1000×',
         clickNode: 'Click to open operator details', rowsEstimateActual: 'Rows: estimate / actual', timeCost: 'Time / cost', executions: 'Executions', outputColumns: 'Output columns',
         flagWarning: 'Operator warning', flagParallel: 'Parallel execution', flagBatch: 'Batch execution mode', slowNode: 'Slow operator: {percent}% of total time ({time})', badRowEstimate: 'Bad row estimate: {direction} by {factor}× (estimated {estimated}, actual {actual})', underDirection: 'underestimated', overDirection: 'overestimated',
-        operator: 'Operator', primaryMetrics: 'Primary metrics', estimatedRows: 'Estimated rows', actualRows: 'Actual rows', actualTime: 'Actual elapsed time', subtreeCost: 'Subtree cost', selfCost: 'Self cost', mode: 'Mode',
+        operator: 'Operator', primaryMetrics: 'Primary metrics', estimatedRows: 'Estimated rows', actualRows: 'Actual rows', actualTime: 'Actual elapsed time', exclusiveTime: 'Exclusive elapsed time (derived)', exclusiveTimeExplanation: 'Critical-path approximation: the operator elapsed time minus the greatest available elapsed time on its child paths. If a child has no elapsed time, the search continues to the nearest measured descendants. Parallel and overlapping pipelines mean this is not an exact SQL Server counter.', subtreeCost: 'Subtree cost', selfCost: 'Self cost', mode: 'Mode',
         ioAndCache: 'I/O and cache', logicalReads: 'Logical reads', physicalReads: 'Physical reads', readAhead: 'Read-ahead reads', lobLogicalReads: 'LOB logical reads', lobPhysicalReads: 'LOB physical reads', scans: 'Scans',
         warnings: 'Warnings', object: 'Object', operandsPredicates: 'Operands and predicates', definedValues: 'Defined values', optimizerEstimates: 'Optimizer estimates', averageRowSize: 'Average row size', estimatedRowsRead: 'Estimated rows read', tableCardinality: 'Table cardinality', showPlanAttributes: 'ShowPlan attributes', threads: 'Threads', thread: 'Thread', elapsed: 'Elapsed',
         reusableSubplan: 'Reusable subplan {number}', calls: 'calls',
@@ -319,6 +334,11 @@
         clearConfirm: 'Delete every saved plan? This cannot be undone.', historyCleared: 'History was permanently cleared',
         minute: 'min', second: 's', millisecond: 'ms', gigabyte: 'GB', megabyte: 'MB', kilobyte: 'KB', missing: '—'
       }
+    };
+
+    const LANGUAGE_FLAGS = {
+      ru: '<svg viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg"><path fill="#fff" d="M0 0h60v12H0z"/><path fill="#1769c2" d="M0 12h60v12H0z"/><path fill="#d52b1e" d="M0 24h60v12H0z"/></svg>',
+      en: '<svg viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="36" fill="#123274"/><path d="M0 0l60 36M60 0L0 36" stroke="#fff" stroke-width="9"/><path d="M0 0l60 36M60 0L0 36" stroke="#c8102e" stroke-width="3.5"/><path d="M30 0v36M0 18h60" stroke="#fff" stroke-width="11"/><path d="M30 0v36M0 18h60" stroke="#c8102e" stroke-width="6"/></svg>'
     };
 
     let locale = localStorage.getItem('sql-plan-language') || (navigator.language?.toLowerCase().startsWith('ru') ? 'ru' : 'en');
@@ -332,7 +352,7 @@
     const $ = (s, root = document) => root.querySelector(s);
     const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
     const els = Object.fromEntries([
-      'fileInput','menuBtn','historyBtn','historyCount','languageSelect','chooseBtn','planNameInput','pasteBox','parsePasteBtn','dropCard','emptyState','viewer','homeSidebar','homeHistoryList','homeClearHistoryBtn','planSidebar','planTitle','planMeta','statementTabs','metricSwitch','metricNotice','tree','main','canvasWrap','graph','queryBtn','fitBtn','zoomLabel','detailsBtn','detailsDrawer','detailsHandle','hideDetailsCheck','drawerTitle','drawerSubtitle','drawerBody','closeDetails','historyPanel','historyList','clearHistoryBtn','closeHistory','overlay','queryModal','queryText','closeQuery','toast','resizer'
+      'fileInput','menuBtn','historyBtn','historyCount','languageSelect','languageFlag','chooseBtn','planNameInput','pasteBox','parsePasteBtn','dropCard','emptyState','viewer','homeSidebar','homeHistoryList','homeClearHistoryBtn','planSidebar','planTitle','planMeta','statementTabs','metricSwitch','metricNotice','tree','main','canvasWrap','graph','queryBtn','fitBtn','zoomLabel','detailsDrawer','detailsHandle','hideDetailsCheck','drawerTitle','drawerSubtitle','drawerBody','closeDetails','historyPanel','historyList','clearHistoryBtn','closeHistory','overlay','queryModal','queryText','closeQuery','toast','resizer'
     ].map(id => [id, document.getElementById(id)]));
 
     const state = {
@@ -347,6 +367,7 @@
       screen: 'home',
       zoom: 1,
       detailsLocked: false,
+      collapsedIds: new Set(),
       dragMoved: false
     };
 
@@ -359,6 +380,7 @@
       $$('[data-i18n-aria]').forEach(el => el.setAttribute('aria-label', t(el.dataset.i18nAria)));
       els.languageSelect.innerHTML = Object.keys(I18N).map(code => `<option value="${code}">${esc(I18N[code].languageName)}</option>`).join('');
       els.languageSelect.value = locale;
+      els.languageFlag.innerHTML = LANGUAGE_FLAGS[locale] || '';
       if (state.plan) renderAll();
       renderHistoryLists();
     }
@@ -570,7 +592,14 @@
       node.subtreeSize = 1 + node.children.reduce((s, c) => s + c.subtreeSize, 0);
       node.selfCost = Math.max(0, node.estimatedCost - node.children.reduce((s, c) => s + c.estimatedCost, 0));
       node.elapsed = runtime?.hasElapsed ? runtime.ActualElapsedms : null;
-      node.selfTime = node.elapsed === null ? null : Math.max(0, node.elapsed - node.children.reduce((m, c) => Math.max(m, c.elapsed || 0), 0));
+      const measuredChildTimes = [];
+      // Lightweight untimed operators must not break the measured critical path.
+      const collectMeasuredFrontier = child => {
+        if (child.elapsed !== null) measuredChildTimes.push(child.elapsed);
+        else child.children.forEach(collectMeasuredFrontier);
+      };
+      node.children.forEach(collectMeasuredFrontier);
+      node.selfTime = node.elapsed === null ? null : Math.max(0, node.elapsed - Math.max(0, ...measuredChildTimes));
       return node;
     }
 
@@ -737,7 +766,8 @@
       state.currentFile = fileName;
       state.currentXml = xml;
       state.statementIndex = 0;
-      state.selectedId = parsed.statements[0].roots[0]?.id || null;
+      state.selectedId = null;
+      state.collapsedIds.clear();
       state.zoom = 1;
       state.screen = 'viewer';
       els.emptyState.classList.add('hidden');
@@ -747,9 +777,11 @@
       els.menuBtn.classList.remove('hidden');
       els.historyBtn.classList.remove('hidden');
       els.detailsHandle.classList.toggle('visible', state.detailsLocked);
-      if (state.detailsLocked) els.detailsDrawer.classList.remove('open');
+      els.detailsDrawer.classList.remove('open');
       updateZoom();
       renderAll();
+      const initialRootId = parsed.statements[0].roots[0]?.id;
+      if (initialRootId) requestAnimationFrame(() => centerGraphNode(initialRootId, 'auto'));
       if (save) {
         try {
           const id = await hashText(xml);
@@ -789,6 +821,33 @@
       return state.metric === 'time' ? { subtree: node.elapsed, self: node.selfTime } : { subtree: node.estimatedCost, self: node.selfCost };
     }
 
+    function visibleTreeNodes(roots) {
+      const result = [];
+      const visit = node => {
+        result.push(node);
+        if (!state.collapsedIds.has(node.id)) node.children.forEach(visit);
+      };
+      roots.forEach(visit);
+      return result;
+    }
+
+    function treeToggle(n) {
+      if (!n.children.length) return '';
+      const collapsed = state.collapsedIds.has(n.id);
+      const label = t(collapsed ? 'expandSubtree' : 'collapseSubtree');
+      return `<button class="tree-toggle" data-toggle="${esc(n.id)}" aria-expanded="${!collapsed}" title="${esc(label)}" aria-label="${esc(label)}">${collapsed?'▸':'▾'}</button>`;
+    }
+
+    function rowsBarSegments(estimated, actual, maximum, severity) {
+      const width = value => Math.min(100, Math.max(0, 100 * value / maximum));
+      const estimateWidth = width(estimated);
+      if (actual === null) return `<span class="rows-segment rows-estimate severity-${severity}" data-series="estimate" style="left:0;width:${estimateWidth}%"></span>`;
+      const actualWidth = width(actual);
+      if (actual === estimated) return `<span class="rows-segment rows-actual severity-${severity}" data-series="actual" style="left:0;width:${actualWidth}%"></span>`;
+      if (actual > estimated) return `<span class="rows-segment rows-estimate severity-${severity}" data-series="estimate" style="left:0;width:${estimateWidth}%"></span><span class="rows-segment rows-actual severity-${severity}" data-series="actual" style="left:${estimateWidth}%;width:${actualWidth-estimateWidth}%"></span>`;
+      return `<span class="rows-segment rows-actual severity-${severity}" data-series="actual" style="left:0;width:${actualWidth}%"></span><span class="rows-segment rows-estimate severity-${severity}" data-series="estimate" style="left:${actualWidth}%;width:${estimateWidth-actualWidth}%"></span>`;
+    }
+
     function renderTree() {
       const s = currentStatement();
       if (!s || !s.roots.length) {
@@ -796,29 +855,29 @@
         els.metricNotice.textContent = '';
         return;
       }
-      const nodes = flatten(s.roots);
-      const timeMissing = state.metric === 'time' && !nodes.some(n => n.runtime?.hasElapsed);
+      const allNodes = flatten(s.roots);
+      const nodes = visibleTreeNodes(s.roots);
+      const timeMissing = state.metric === 'time' && !allNodes.some(n => n.runtime?.hasElapsed);
       if (timeMissing) els.metricNotice.textContent = t('timeUnavailable');
-      else if (state.metric === 'rows') els.metricNotice.innerHTML = `<span class="rows-legend"><span><i class="metric-dot" style="background:#ff6574"></i>${esc(t('underShort'))}</span><span><i class="metric-dot" style="background:#5c9fff"></i>${esc(t('overShort'))}</span><span><i class="metric-dot" style="background:#4fd0a4"></i>${esc(t('closeShort'))}</span></span>`;
+      else if (state.metric === 'rows') els.metricNotice.innerHTML = `<span class="rows-legend"><span><i class="metric-dot" style="background:#4fd0a4"></i>${esc(t('closeShort'))}</span><span><i class="metric-dot" style="background:#fddb61"></i>${esc(t('rowSeverity2'))}</span><span><i class="metric-dot" style="background:#ee8800"></i>${esc(t('rowSeverity3'))}</span><span><i class="metric-dot" style="background:#ff5964"></i>${esc(t('rowSeverity4'))}</span></span>`;
       else els.metricNotice.textContent = '';
       const maximum = state.metric === 'rows'
-        ? Math.max(...nodes.flatMap(n => [n.estimatedRows, n.runtime?.hasRows ? n.runtime.ActualRows : 0]), 0.0000001)
-        : Math.max(...s.roots.map(r => metricValues(r).subtree || 0), ...nodes.map(n => metricValues(n).subtree || 0), 0.0000001);
+        ? Math.max(...allNodes.flatMap(n => [n.estimatedRows, n.runtime?.hasRows ? n.runtime.ActualRows : 0]), 0.0000001)
+        : Math.max(...s.roots.map(r => metricValues(r).subtree || 0), ...allNodes.map(n => metricValues(n).subtree || 0), 0.0000001);
       const color = state.metric === 'time' ? 'var(--time)' : 'var(--cost)';
-      els.tree.innerHTML = nodes.map(n => {
+      const rows = nodes.map(n => {
         if (state.metric === 'rows') {
           const estimated = n.estimatedRows;
           const hasActual = Boolean(n.runtime?.hasRows);
           const actual = hasActual ? n.runtime.ActualRows : null;
-          const estimateWidth = Math.min(100, 100 * estimated / maximum);
-          const actualWidth = actual === null ? 0 : Math.min(100, 100 * actual / maximum);
-          const ratio = actual === null ? null : estimated === 0 ? (actual === 0 ? 1 : Infinity) : actual / estimated;
-          const accuracy = ratio === null ? '' : ratio > 1.1 ? 'under' : ratio < .9 ? 'over' : 'close';
-          const accuracyText = ratio === null ? t('noActualRows') : t(accuracy === 'under' ? 'underestimated' : accuracy === 'over' ? 'overestimated' : 'closeEstimate');
+          const estimate = estimateInfo(n);
+          const severity = estimate?.severity || 0;
+          const accuracyText = actual === null ? t('noActualRows') : t(actual > estimated ? 'underestimated' : actual < estimated ? 'overestimated' : 'closeEstimate');
           return `<div class="tree-row ${n.id===state.selectedId?'selected':''}" data-id="${esc(n.id)}" style="--depth:${n.depth}">
+            ${treeToggle(n)}
             <div class="tree-name"><span class="tree-op">${n.duplicateGroup?'<span class="call-mark">↗</span>':''}${esc(n.physical)}</span><span class="tree-object">${esc(n.objectLabel || n.logical || '')}</span></div>
-            <div class="tree-bar" title="${esc(t('estimate'))}: ${esc(formatNumber(estimated))}; ${esc(t('actual'))}: ${actual===null?t('missing'):esc(formatNumber(actual))}. ${esc(accuracyText)}"><span class="estimate" style="width:${estimateWidth}%"></span>${actual===null?'':`<span class="actual ${accuracy}" style="width:${actualWidth}%"></span>`}</div>
-            <div class="tree-value" title="${esc(t('estimate'))} / ${esc(t('actual'))}">${formatNumber(estimated)} / ${actual===null?t('missing'):formatNumber(actual)}</div>
+            <div class="tree-metrics"><div class="tree-bar" title="${esc(t('estimate'))}: ${esc(formatNumber(estimated))}; ${esc(t('actual'))}: ${actual===null?t('missing'):esc(formatNumber(actual))}. ${esc(accuracyText)}">${rowsBarSegments(estimated,actual,maximum,severity)}</div>
+            <div class="tree-value" title="${esc(t('estimate'))} / ${esc(t('actual'))}">${formatNumber(estimated)} / ${actual===null?t('missing'):formatNumber(actual)}</div></div>
           </div>`;
         }
         const v = metricValues(n);
@@ -826,57 +885,65 @@
         const selfWidth = Math.min(subWidth, 100 * (v.self || 0) / maximum);
         const value = state.metric === 'time' ? formatMs(v.subtree) : formatNumber(v.subtree);
         return `<div class="tree-row ${n.id===state.selectedId?'selected':''}" data-id="${esc(n.id)}" style="--depth:${n.depth}">
+          ${treeToggle(n)}
           <div class="tree-name"><span class="tree-op">${n.duplicateGroup?'<span class="call-mark">↗</span>':''}${esc(n.physical)}</span><span class="tree-object">${esc(n.objectLabel || n.logical || '')}</span></div>
-          <div class="tree-bar" title="${esc(t('subtree'))}: ${esc(value)}; ${esc(t('currentNode'))}: ${esc(state.metric==='time'?formatMs(v.self):formatNumber(v.self))}"><span class="subtree" style="width:${subWidth}%;background:${color}"></span><span class="self" style="width:${selfWidth}%;background:${color}"></span></div>
-          <div class="tree-value">${esc(value)}</div>
+          <div class="tree-metrics"><div class="tree-bar" title="${esc(t('subtree'))}: ${esc(value)}; ${esc(state.metric==='time'?t('exclusiveTime'):t('selfCost'))}: ${esc(state.metric==='time'?formatMs(v.self):formatNumber(v.self))}"><span class="subtree" style="width:${subWidth}%;background:${color}"></span><span class="self" style="width:${selfWidth}%;background:${color}"></span></div>
+          <div class="tree-value">${esc(value)}</div></div>
         </div>`;
       }).join('');
+      const contentWidth = 390 + Math.max(0, ...nodes.map(n => n.depth)) * 15;
+      els.tree.innerHTML = `<div class="tree-content" style="width:${contentWidth}px">${rows}</div>`;
       $$('#metricSwitch button', els.metricSwitch).forEach(b => b.classList.toggle('active', b.dataset.metric === state.metric));
     }
 
     function layoutGraph(statement) {
-      const cardW = 220, cardH = 106, slotH = 164, gapX = 78, gapY = 24, pad = 24;
-      let nextY = pad;
+      const cardW = 220, cardH = 106, cardMaxW = 278, cardMaxH = 158;
+      const leafStep = 310, levelStep = 190, padX = 50, padY = 36;
+      let nextLeafCenter = padX + cardMaxW / 2;
       const visibleChildren = node => node.duplicateGroup ? [] : node.children;
       function place(node, depth) {
         const kids = visibleChildren(node);
         kids.forEach(k => place(k, depth + 1));
-        const y = kids.length ? (kids[0]._layout.y + kids[kids.length-1]._layout.y) / 2 : nextY;
-        if (!kids.length) nextY += slotH + gapY;
-        node._layout = { x: pad + depth * (cardW + gapX), y };
+        const centerX = kids.length
+          ? ((kids[0]._layout.x + cardW / 2) + (kids[kids.length - 1]._layout.x + cardW / 2)) / 2
+          : nextLeafCenter;
+        if (!kids.length) nextLeafCenter += leafStep;
+        node._layout = { x: centerX - cardW / 2, y: padY + depth * levelStep };
       }
-      statement.roots.forEach((root, i) => { place(root, 0); if (i < statement.roots.length-1) nextY += 36; });
+      statement.roots.forEach((root, i) => { place(root, 0); if (i < statement.roots.length-1) nextLeafCenter += 70; });
       const mainNodes = flatten(statement.roots).filter(n => {
         let p=n.parent; while(p){ if(p.duplicateGroup) return false; p=p.parent; } return true;
       });
-      let maxX = Math.max(pad, ...mainNodes.map(n => n._layout.x + cardW));
-      let mainBottom = Math.max(nextY, ...mainNodes.map(n => n._layout.y + slotH));
+      let maxRight = Math.max(padX, ...mainNodes.map(n => n._layout.x + cardW + 50));
+      const mainBottom = Math.max(padY + cardMaxH, ...mainNodes.map(n => n._layout.y + cardMaxH));
       const subplans = [];
       let subY = mainBottom + (statement.subplans.length ? 70 : 0);
       statement.subplans.forEach(sp => {
         const nodes = flatten([sp.root]);
-        const baseDepth = sp.root.depth;
-        let localY = subY + 43;
+        const zoneX = 24, contentTop = subY + 52;
+        let localLeafCenter = zoneX + 50 + cardMaxW / 2;
         function placeSub(node, depth) {
           node.children.forEach(c => placeSub(c, depth+1));
           const kids=node.children;
-          const y=kids.length?(kids[0]._subLayout.y+kids[kids.length-1]._subLayout.y)/2:localY;
-          if(!kids.length) localY += slotH+gapY;
-          node._subLayout={x:pad+depth*(cardW+gapX),y};
+          const centerX = kids.length
+            ? ((kids[0]._subLayout.x + cardW / 2) + (kids[kids.length - 1]._subLayout.x + cardW / 2)) / 2
+            : localLeafCenter;
+          if(!kids.length) localLeafCenter += leafStep;
+          node._subLayout={x:centerX-cardW/2,y:contentTop+depth*levelStep};
         }
         placeSub(sp.root,0);
-        const bottom=Math.max(localY,...nodes.map(n=>n._subLayout.y+slotH))+18;
-        const right=Math.max(...nodes.map(n=>n._subLayout.x+cardW))+18;
-        subplans.push({sp,nodes,x:12,y:subY,width:right,height:bottom-subY,bottom});
-        maxX=Math.max(maxX,right);
-        subY=bottom+24;
+        const bottom=Math.max(...nodes.map(n=>n._subLayout.y+cardMaxH))+28;
+        const right=Math.max(...nodes.map(n=>n._subLayout.x+cardW))+50;
+        subplans.push({sp,nodes,x:zoneX,y:subY,width:right-zoneX,height:bottom-subY,bottom});
+        maxRight=Math.max(maxRight,right);
+        subY=bottom+30;
       });
-      return { mainNodes, subplans, width:maxX+80, height:Math.max(mainBottom+50,subY+20), cardW, cardH };
+      return { mainNodes, subplans, width:maxRight+30, height:Math.max(mainBottom+60,subY+20), cardW, cardH };
     }
 
     function edgePath(a, b, cardW, cardH) {
-      const x1=a.x+cardW, y1=a.y+cardH/2, x2=b.x, y2=b.y+cardH/2, mid=(x1+x2)/2;
-      return `M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`;
+      const x1=a.x+cardW/2, y1=a.y+cardH, x2=b.x+cardW/2, y2=b.y, mid=(y1+y2)/2;
+      return `M ${x1} ${y1} C ${x1} ${mid}, ${x2} ${mid}, ${x2} ${y2}`;
     }
 
     function nodeCard(n, pos, sub = false, executionTime = 0) {
@@ -889,7 +956,8 @@
       ].join('');
       const call = !sub && n.duplicateGroup;
       const subplanName = n.duplicateGroup ? t('reusableSubplan',{number:n.duplicateGroup.number}) : '';
-      return `<article class="node-card ${n.id===state.selectedId?'selected expanded':''} ${n.warnings.length?'warning':''} ${call?'call-node':''}" data-id="${esc(n.id)}" style="left:${pos.x}px;top:${pos.y}px" title="${esc(t('clickNode'))}">
+      const visualX = pos.x - (n.id===state.selectedId ? 29 : 0);
+      return `<article class="node-card ${n.id===state.selectedId?'selected expanded':''} ${n.warnings.length?'warning':''} ${call?'call-node':''}" data-id="${esc(n.id)}" data-node-id="${esc(n.nodeId)}" data-subplan="${sub}" style="left:${visualX}px;top:${pos.y}px" title="${esc(t('clickNode'))}">
         <div class="node-top"><div class="node-title">${call?'↗ ':''}${esc(call ? subplanName : n.physical)}</div><div class="node-id">${performanceBadges(n,executionTime)}<span>#${esc(n.nodeId)}</span></div></div>
         <div class="node-subtitle">${esc(call ? n.physical + (subtitle?' · '+subtitle:'') : subtitle || n.logical || '—')}</div><div class="node-flags">${flags}</div>
         <div class="node-stats"><div class="stat"><div class="stat-label">${esc(t('rowsEstimateActual'))}</div><div class="stat-value">${formatNumber(n.estimatedRows)} / ${actualRows===null?t('missing'):formatNumber(actualRows)}</div></div><div class="stat"><div class="stat-label">${esc(t('timeCost'))}</div><div class="stat-value">${formatMs(n.elapsed)} / ${formatNumber(n.estimatedCost)}</div></div></div>
@@ -913,7 +981,7 @@
         zone.nodes.forEach(n => { if(n.parent && zone.nodes.includes(n.parent)) edges.push(`<path class="edge" d="${edgePath(n.parent._subLayout,n._subLayout,layout.cardW,layout.cardH)}"/>`); });
         zone.sp.calls.forEach(call => {
           const a=call._layout,b=zone.sp.root._subLayout;
-          if(a) edges.push(`<path class="edge call" d="M ${a.x+layout.cardW/2} ${a.y+layout.cardH} C ${a.x+layout.cardW/2} ${a.y+layout.cardH+34}, ${b.x+layout.cardW/2} ${b.y-34}, ${b.x+layout.cardW/2} ${b.y}"/>`);
+          if(a) edges.push(`<path class="edge call" d="${edgePath(a,b,layout.cardW,layout.cardH)}"/>`);
         });
       });
       const zones=layout.subplans.map(z=>`<div class="subplan-zone" style="left:${z.x}px;top:${z.y}px;width:${z.width}px;height:${z.height}px"><div class="subplan-label">↗ ${esc(t('reusableSubplan',{number:z.sp.number}))} · ${z.sp.calls.length} ${esc(t('calls'))}</div></div>`).join('');
@@ -939,7 +1007,7 @@
       const actual = n.runtime;
       const primary = [
         [t('estimatedRows'), formatNumber(n.estimatedRows)], [t('actualRows'), actual?.hasRows ? formatNumber(actual.ActualRows) : t('missing')],
-        [t('actualTime'), actual?.hasElapsed ? formatMs(actual.ActualElapsedms) : t('missing')], ['CPU', actual?.hasCPU ? formatMs(actual.ActualCPUms) : t('missing')],
+        [t('actualTime'), actual?.hasElapsed ? formatMs(actual.ActualElapsedms) : t('missing')], [t('exclusiveTime'), n.selfTime === null ? t('missing') : '≈ ' + formatMs(n.selfTime)], ['CPU', actual?.hasCPU ? formatMs(actual.ActualCPUms) : t('missing')],
         [t('subtreeCost'), formatNumber(n.estimatedCost)], [t('selfCost'), formatNumber(n.selfCost)],
         [t('executions'), actual ? formatNumber(actual.ActualExecutions) : t('missing')], [t('mode'), actual?.ActualExecutionMode || n.estimatedMode || 'Row']
       ];
@@ -951,7 +1019,7 @@
       const objectRows = Object.entries(n.object);
       const attributeRows = Object.entries(n.attributes).filter(([k]) => !['NodeId','PhysicalOp','LogicalOp','EstimateRows','EstimatedTotalSubtreeCost','EstimateCPU','EstimateIO'].includes(k));
       els.drawerBody.innerHTML = `
-        <section class="detail-section"><h3>${esc(t('primaryMetrics'))}</h3>${detailRows(primary)}</section>
+        <section class="detail-section"><h3>${esc(t('primaryMetrics'))}</h3>${detailRows(primary)}${actual?.hasElapsed?`<div class="detail-note">${esc(t('exclusiveTimeExplanation'))}</div>`:''}</section>
         ${io.length?`<section class="detail-section"><h3>${esc(t('ioAndCache'))}</h3>${detailRows(io)}</section>`:''}
         ${n.warnings.length?`<section class="detail-section"><h3>${esc(t('warnings'))}</h3><div class="chip-list">${n.warnings.map(x=>`<span class="chip" style="border-color:#705e2b;color:#f4d77c">${esc(x)}</span>`).join('')}</div></section>`:''}
         ${objectRows.length?`<section class="detail-section"><h3>${esc(t('object'))}</h3>${detailRows(objectRows)}</section>`:''}
@@ -964,12 +1032,47 @@
         ${actual&&actual.threadRows.length>1?`<section class="detail-section"><h3>${esc(t('threads'))} (${actual.threadRows.length})</h3>${actual.threadRows.map(row=>detailRows([[t('thread'),row.Thread],[t('rows'),row.ActualRows],[t('elapsed'),row.ActualElapsedms?formatMs(row.ActualElapsedms):t('missing')],['CPU',row.ActualCPUms?formatMs(row.ActualCPUms):t('missing')],[t('logicalReads'),row.ActualLogicalReads||t('missing')]])).join('')}</section>`:''}`;
     }
 
-    function selectNode(id) {
-      state.selectedId = id;
+    function centerGraphNode(id, behavior = 'smooth') {
+      if (!id) return;
+      const card = $(`.node-card[data-id="${CSS.escape(id)}"]`, els.graph);
+      if (!card) return;
+      const left = (card.offsetLeft + card.offsetWidth / 2) * state.zoom - els.canvasWrap.clientWidth / 2;
+      const top = (card.offsetTop + card.offsetHeight / 2) * state.zoom - els.canvasWrap.clientHeight / 2;
+      els.canvasWrap.scrollTo({left:Math.max(0,left),top:Math.max(0,top),behavior});
+    }
+
+    function centerTreeNode(id, behavior = 'smooth') {
+      if (!id) return;
+      const row = $(`.tree-row[data-id="${CSS.escape(id)}"]`, els.tree);
+      const node = currentNodes().find(candidate => candidate.id === id);
+      if (!row || !node) return;
+      const top = row.offsetTop + row.offsetHeight / 2 - els.tree.clientHeight / 2;
+      const left = node.depth * 15 - 25;
+      els.tree.scrollTo({
+        top:Math.max(0,Math.min(els.tree.scrollHeight-els.tree.clientHeight,top)),
+        left:Math.max(0,Math.min(els.tree.scrollWidth-els.tree.clientWidth,left)),
+        behavior
+      });
+    }
+
+    function selectNode(id, { centerGraph = false, centerTree = false, toggle = true } = {}) {
+      const nextId = id && (!toggle || state.selectedId !== id) ? id : null;
+      const nextNode = nextId ? currentNodes().find(node => node.id === nextId) : null;
+      if (centerTree && nextNode) {
+        let parent = nextNode.parent;
+        while (parent) { state.collapsedIds.delete(parent.id); parent = parent.parent; }
+      }
+      state.selectedId = nextId;
       renderTree(); renderGraph();
       const node=selectedNode();
-      if(node) renderDetails(node);
-      if(!state.detailsLocked) els.detailsDrawer.classList.add('open');
+      if(node) {
+        renderDetails(node);
+        if(!state.detailsLocked) els.detailsDrawer.classList.add('open');
+        if(centerGraph) requestAnimationFrame(() => centerGraphNode(node.id));
+        if(centerTree) requestAnimationFrame(() => centerTreeNode(node.id));
+      } else {
+        els.detailsDrawer.classList.remove('open');
+      }
     }
 
     function renderHistoryLists() {
@@ -1058,15 +1161,14 @@
     ['dragenter','dragover'].forEach(type => document.addEventListener(type,e=>{e.preventDefault();els.dropCard.classList.add('drag');}));
     ['dragleave','drop'].forEach(type => document.addEventListener(type,e=>{e.preventDefault();els.dropCard.classList.remove('drag');}));
     document.addEventListener('drop',e=>readFile(e.dataTransfer.files[0]));
-    els.statementTabs.addEventListener('click',e=>{ const b=e.target.closest('[data-index]'); if(!b)return; state.statementIndex=Number(b.dataset.index); const s=currentStatement(); state.selectedId=s.roots[0]?.id||null; renderAll(); });
+    els.statementTabs.addEventListener('click',e=>{ const b=e.target.closest('[data-index]'); if(!b)return; state.statementIndex=Number(b.dataset.index); const s=currentStatement(); state.selectedId=null; state.collapsedIds.clear(); els.detailsDrawer.classList.remove('open'); renderAll(); const rootId=s.roots[0]?.id; if(rootId)requestAnimationFrame(()=>centerGraphNode(rootId,'auto')); });
     els.metricSwitch.addEventListener('click',e=>{ const b=e.target.closest('[data-metric]'); if(!b)return; state.metric=b.dataset.metric; renderTree(); });
-    els.tree.addEventListener('click',e=>{if(state.dragMoved){state.dragMoved=false;return;}const row=e.target.closest('[data-id]');if(row)selectNode(row.dataset.id);});
-    els.graph.addEventListener('click',e=>{if(state.dragMoved){state.dragMoved=false;return;}const card=e.target.closest('.node-card[data-id]');if(card)selectNode(card.dataset.id);});
-    els.detailsBtn.onclick=()=>{const n=selectedNode();if(!n)return;if(state.detailsLocked)setDetailsLocked(false);renderDetails(n);els.detailsDrawer.classList.toggle('open');};
+    els.tree.addEventListener('click',e=>{if(state.dragMoved){state.dragMoved=false;return;}const toggle=e.target.closest('[data-toggle]');if(toggle){const id=toggle.dataset.toggle;if(state.collapsedIds.has(id))state.collapsedIds.delete(id);else state.collapsedIds.add(id);renderTree();return;}const row=e.target.closest('[data-id]');if(row)selectNode(row.dataset.id,{centerGraph:true});});
+    els.canvasWrap.addEventListener('click',e=>{if(state.dragMoved){state.dragMoved=false;return;}const card=e.target.closest('.node-card[data-id]');selectNode(card?.dataset.id||null,{centerTree:Boolean(card)});});
     els.closeDetails.onclick=()=>els.detailsDrawer.classList.remove('open');
     els.hideDetailsCheck.onchange=()=>setDetailsLocked(els.hideDetailsCheck.checked);
-    els.detailsHandle.onclick=()=>{setDetailsLocked(false);const n=selectedNode();if(n)renderDetails(n);els.detailsDrawer.classList.add('open');};
-    els.fitBtn.onclick=()=>{state.zoom=1;updateZoom();els.canvasWrap.scrollTo({left:0,top:0,behavior:'smooth'});};
+    els.detailsHandle.onclick=()=>{setDetailsLocked(false);const n=selectedNode();if(n){renderDetails(n);els.detailsDrawer.classList.add('open');}};
+    els.fitBtn.onclick=()=>{state.zoom=1;updateZoom();const rootId=currentStatement()?.roots[0]?.id;if(rootId)requestAnimationFrame(()=>centerGraphNode(rootId));else els.canvasWrap.scrollTo({left:0,top:0,behavior:'smooth'});};
     els.queryBtn.onclick=()=>{if(els.queryBtn.disabled)return;els.queryText.textContent=currentStatement()?.text||t('queryUnavailable');els.queryModal.classList.add('open');};
     els.closeQuery.onclick=()=>els.queryModal.classList.remove('open');
     els.queryModal.addEventListener('click',e=>{if(e.target===els.queryModal)els.queryModal.classList.remove('open');});
@@ -1082,12 +1184,12 @@
     els.canvasWrap.addEventListener('pointermove',e=>{if(!graphPan)return;const dx=e.clientX-graphPan.x,dy=e.clientY-graphPan.y;if(!graphPan.captured&&Math.abs(dx)+Math.abs(dy)<=6)return;if(!graphPan.captured){graphPan.captured=true;els.canvasWrap.setPointerCapture(graphPan.pointerId);els.canvasWrap.classList.add('panning');}state.dragMoved=true;els.canvasWrap.scrollLeft=graphPan.left-dx;els.canvasWrap.scrollTop=graphPan.top-dy;});
     const endGraphPan=()=>{graphPan=null;els.canvasWrap.classList.remove('panning');};
     els.canvasWrap.addEventListener('pointerup',endGraphPan);els.canvasWrap.addEventListener('pointercancel',endGraphPan);
-    els.canvasWrap.addEventListener('wheel',e=>{e.preventDefault();const old=state.zoom;const delta=e.deltaMode===1?e.deltaY*33:e.deltaMode===2?e.deltaY*300:e.deltaY;const factor=Math.exp(-delta*.0015);const next=Math.max(.35,Math.min(2.5,old*factor));if(Math.abs(next-old)<.001)return;const rect=els.canvasWrap.getBoundingClientRect();const px=e.clientX-rect.left,py=e.clientY-rect.top;const contentX=(els.canvasWrap.scrollLeft+px)/old,contentY=(els.canvasWrap.scrollTop+py)/old;state.zoom=next;updateZoom();requestAnimationFrame(()=>{els.canvasWrap.scrollLeft=contentX*next-px;els.canvasWrap.scrollTop=contentY*next-py;});},{passive:false});
+    els.canvasWrap.addEventListener('wheel',e=>{e.preventDefault();const scale=e.deltaMode===1?33:e.deltaMode===2?300:1;const deltaX=e.deltaX*scale,deltaY=e.deltaY*scale;if(!e.ctrlKey){els.canvasWrap.scrollBy({left:deltaX,top:deltaY});return;}const old=state.zoom;const factor=Math.exp(-deltaY*.0015);const next=Math.max(.35,Math.min(2.5,old*factor));if(Math.abs(next-old)<.001)return;const rect=els.canvasWrap.getBoundingClientRect();const px=e.clientX-rect.left,py=e.clientY-rect.top;const contentX=(els.canvasWrap.scrollLeft+px)/old,contentY=(els.canvasWrap.scrollTop+py)/old;state.zoom=next;updateZoom();requestAnimationFrame(()=>{els.canvasWrap.scrollLeft=contentX*next-px;els.canvasWrap.scrollTop=contentY*next-py;});},{passive:false});
 
     let treePan = null;
-    els.tree.addEventListener('pointerdown',e=>{if(e.button!==0||!e.ctrlKey)return;e.preventDefault();treePan={x:e.clientX,y:e.clientY,left:els.tree.scrollLeft,top:els.tree.scrollTop};state.dragMoved=false;els.tree.setPointerCapture(e.pointerId);els.tree.classList.add('ctrl-panning');});
-    els.tree.addEventListener('pointermove',e=>{if(!treePan)return;const dx=e.clientX-treePan.x,dy=e.clientY-treePan.y;if(Math.abs(dx)+Math.abs(dy)>4)state.dragMoved=true;els.tree.scrollLeft=treePan.left-dx;els.tree.scrollTop=treePan.top-dy;});
-    const endTreePan=()=>{treePan=null;els.tree.classList.remove('ctrl-panning');};
+    els.tree.addEventListener('pointerdown',e=>{if(e.button!==0)return;treePan={pointerId:e.pointerId,x:e.clientX,y:e.clientY,left:els.tree.scrollLeft,captured:false};state.dragMoved=false;});
+    els.tree.addEventListener('pointermove',e=>{if(!treePan)return;const dx=e.clientX-treePan.x,dy=e.clientY-treePan.y;if(Math.abs(dx)+Math.abs(dy)>6)state.dragMoved=true;if(!treePan.captured&&Math.abs(dx)<=6)return;if(!treePan.captured){treePan.captured=true;els.tree.setPointerCapture(treePan.pointerId);els.tree.classList.add('panning');}e.preventDefault();els.tree.scrollLeft=treePan.left-dx;});
+    const endTreePan=()=>{treePan=null;els.tree.classList.remove('panning');};
     els.tree.addEventListener('pointerup',endTreePan);els.tree.addEventListener('pointercancel',endTreePan);
 
     let resizing=false;

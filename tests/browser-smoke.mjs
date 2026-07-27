@@ -34,15 +34,15 @@ const plans = process.env.SMOKE_PUBLIC_ONLY ? [] : process.env.SMOKE_LIMIT ? all
 const repeatedSubplan = `<?xml version="1.0"?>
 <ShowPlanXML xmlns="http://schemas.microsoft.com/sqlserver/2004/07/showplan" Version="1.0" Build="test"><BatchSequence><Batch><Statements>
 <StmtSimple StatementId="1" StatementType="SELECT" StatementText="synthetic repeated subtree"><QueryPlan>
-<RelOp NodeId="0" PhysicalOp="Concatenation" LogicalOp="Concatenation" EstimateRows="2" EstimatedTotalSubtreeCost="2">
+<RelOp NodeId="0" PhysicalOp="Concatenation" LogicalOp="Concatenation" EstimateRows="2" EstimatedTotalSubtreeCost="2"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="2" ActualExecutions="1" ActualElapsedms="351000" ActualCPUms="93600"/></RunTimeInformation>
 <Concatenation>
-<RelOp NodeId="1" PhysicalOp="Nested Loops" LogicalOp="Inner Join" EstimateRows="1" EstimatedTotalSubtreeCost="1"><NestedLoops>
-<RelOp NodeId="2" PhysicalOp="Index Scan" LogicalOp="Index Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.4"><IndexScan><Object Schema="[dbo]" Table="[A]" Index="[IX_A]"/></IndexScan></RelOp>
-<RelOp NodeId="3" PhysicalOp="Index Seek" LogicalOp="Index Seek" EstimateRows="1" EstimatedTotalSubtreeCost="0.4"><IndexScan><Object Schema="[dbo]" Table="[B]" Index="[IX_B]"/></IndexScan></RelOp>
+<RelOp NodeId="1" PhysicalOp="Nested Loops" LogicalOp="Inner Join" EstimateRows="1" EstimatedTotalSubtreeCost="1"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="100" ActualExecutions="1" ActualElapsedms="172800" ActualCPUms="50000"/></RunTimeInformation><NestedLoops>
+<RelOp NodeId="2" PhysicalOp="Compute Scalar" LogicalOp="Compute Scalar" EstimateRows="1" EstimatedTotalSubtreeCost="0.4"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1"/></RunTimeInformation><ComputeScalar><RelOp NodeId="7" PhysicalOp="Index Scan" LogicalOp="Index Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.3"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1" ActualElapsedms="172800" ActualCPUms="40000"/></RunTimeInformation><IndexScan><Object Schema="[dbo]" Table="[A]" Index="[IX_A]"/></IndexScan></RelOp></ComputeScalar></RelOp>
+<RelOp NodeId="3" PhysicalOp="Index Seek" LogicalOp="Index Seek" EstimateRows="1" EstimatedTotalSubtreeCost="0.4"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1"/></RunTimeInformation><IndexScan><Object Schema="[dbo]" Table="[B]" Index="[IX_B]"/></IndexScan></RelOp>
 </NestedLoops></RelOp>
-<RelOp NodeId="4" PhysicalOp="Nested Loops" LogicalOp="Inner Join" EstimateRows="1" EstimatedTotalSubtreeCost="1"><NestedLoops>
-<RelOp NodeId="5" PhysicalOp="Index Scan" LogicalOp="Index Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.4"><IndexScan><Object Schema="[dbo]" Table="[A]" Index="[IX_A]"/></IndexScan></RelOp>
-<RelOp NodeId="6" PhysicalOp="Index Seek" LogicalOp="Index Seek" EstimateRows="1" EstimatedTotalSubtreeCost="0.4"><IndexScan><Object Schema="[dbo]" Table="[B]" Index="[IX_B]"/></IndexScan></RelOp>
+<RelOp NodeId="4" PhysicalOp="Nested Loops" LogicalOp="Inner Join" EstimateRows="1" EstimatedTotalSubtreeCost="1"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="0" ActualExecutions="1" ActualElapsedms="1000" ActualCPUms="500"/></RunTimeInformation><NestedLoops>
+<RelOp NodeId="5" PhysicalOp="Compute Scalar" LogicalOp="Compute Scalar" EstimateRows="1" EstimatedTotalSubtreeCost="0.4"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1"/></RunTimeInformation><ComputeScalar><RelOp NodeId="8" PhysicalOp="Index Scan" LogicalOp="Index Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.3"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1" ActualElapsedms="800" ActualCPUms="300"/></RunTimeInformation><IndexScan><Object Schema="[dbo]" Table="[A]" Index="[IX_A]"/></IndexScan></RelOp></ComputeScalar></RelOp>
+<RelOp NodeId="6" PhysicalOp="Index Seek" LogicalOp="Index Seek" EstimateRows="1" EstimatedTotalSubtreeCost="0.4"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1"/></RunTimeInformation><IndexScan><Object Schema="[dbo]" Table="[B]" Index="[IX_B]"/></IndexScan></RelOp>
 </NestedLoops></RelOp>
 </Concatenation></RelOp></QueryPlan></StmtSimple></Statements></Batch></BatchSequence></ShowPlanXML>`;
 const profile = mkdtempSync(join(tmpdir(), 'sql-plan-smoke-'));
@@ -137,43 +137,106 @@ try {
       failures.push(`${plan}: ${error.message}`);
     }
   }
-  if (!plans.length) {
-    await evaluate(`document.getElementById('pasteBox').value = ${JSON.stringify(repeatedSubplan)}; document.getElementById('parsePasteBtn').click()`);
-    await retry(async () => { if (!await evaluate("document.querySelectorAll('.node-card').length > 0")) throw new Error('Synthetic plan did not render'); });
-  }
-  const point = await evaluate(`(() => {const r=document.querySelector('.node-card').getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}})()`);
-  await send('Input.dispatchMouseEvent',{type:'mousePressed',x:point.x,y:point.y,button:'left',clickCount:1});
-  await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:point.x,y:point.y,button:'left',clickCount:1});
-  const lockState = await evaluate(`(() => {
-    const drawerOpened=document.getElementById('detailsDrawer').classList.contains('open');
-    const check=document.getElementById('hideDetailsCheck');check.checked=true;check.dispatchEvent(new Event('change',{bubbles:true}));
-    return {drawerOpened};
-  })()`);
-  await send('Input.dispatchMouseEvent',{type:'mousePressed',x:point.x,y:point.y,button:'left',clickCount:1});
-  await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:point.x,y:point.y,button:'left',clickCount:1});
-  const interaction = await evaluate(`(() => {
-    const stayedClosed=!document.getElementById('detailsDrawer').classList.contains('open')&&document.getElementById('detailsHandle').classList.contains('visible');
-    document.getElementById('detailsHandle').click();
-    const unlocked=document.getElementById('detailsDrawer').classList.contains('open');
-    const language=document.getElementById('languageSelect');language.value='ru';language.dispatchEvent(new Event('change',{bubbles:true}));
-    const russian=document.getElementById('menuBtn').textContent;
-    language.value='en';language.dispatchEvent(new Event('change',{bubbles:true}));
-    const english=document.getElementById('menuBtn').textContent;
-    const canvas=document.getElementById('canvasWrap');const before=document.getElementById('zoomLabel').textContent;canvas.dispatchEvent(new WheelEvent('wheel',{deltaY:-150,clientX:100,clientY:100,cancelable:true,bubbles:true}));const after=document.getElementById('zoomLabel').textContent;
-    document.getElementById('menuBtn').click();
-    return {stayedClosed,unlocked,russian,english,before,after,homeVisible:!document.getElementById('homeSidebar').classList.contains('hidden'),viewerButtonsHidden:document.getElementById('menuBtn').classList.contains('hidden')&&document.getElementById('historyBtn').classList.contains('hidden'),languageSaved:localStorage.getItem('sql-plan-language')};
-  })()`);
-  if (!lockState.drawerOpened || !interaction.stayedClosed || !interaction.unlocked) failures.push(`Graph click or details locking failed: ${JSON.stringify({lockState,interaction})}`);
-  if (interaction.russian !== 'Возврат в меню' || interaction.english !== 'Back to menu' || interaction.languageSaved !== 'en') failures.push(`Language switching failed: ${JSON.stringify(interaction)}`);
-  if (interaction.before === interaction.after) failures.push(`Graph zoom failed: ${JSON.stringify(interaction)}`);
-  if (!interaction.homeVisible || !interaction.viewerButtonsHidden) failures.push(`Home screen state failed: ${JSON.stringify(interaction)}`);
-  if (plans.length > 10 && (!timeAlerts || !rowAlerts || maxIndent <= 105)) failures.push(`PEV2 alerts or deep indentation missing: ${JSON.stringify({timeAlerts,rowAlerts,maxIndent})}`);
   await evaluate(`document.getElementById('planNameInput').value='Smoke custom name'; document.getElementById('pasteBox').value = ${JSON.stringify(repeatedSubplan)}; document.getElementById('parsePasteBtn').click()`);
   await retry(async () => {
     const snapshot = await evaluate("({title:document.getElementById('planTitle').textContent,zones:document.querySelectorAll('.subplan-zone').length,calls:document.querySelectorAll('.edge.call').length})");
     if (snapshot.title!=='Smoke custom name'||!snapshot.zones || snapshot.calls < 2) throw new Error('Custom name or reusable subplan rendering failed');
     reusableZones += snapshot.zones;
   });
+  const structure = await evaluate(`(() => {
+    const card=id=>document.querySelector('.node-card[data-subplan="false"][data-node-id="'+id+'"]');
+    const root=card('0'),left=card('1'),right=card('4');
+    const center=el=>el?el.offsetLeft+el.offsetWidth/2:null;
+    const toggle=document.querySelector('.tree-toggle'),bar=document.querySelector('.tree-bar'),metrics=document.querySelector('.tree-metrics'),value=document.querySelector('.tree-value');
+    return {rootTop:root?.offsetTop,rootBottom:root?root.offsetTop+root.offsetHeight:null,leftTop:left?.offsetTop,rightTop:right?.offsetTop,rootX:center(root),leftX:center(left),rightX:center(right),detailsButton:Boolean(document.getElementById('detailsBtn')),flagSvg:Boolean(document.querySelector('#languageFlag svg')),emojiLanguage:Array.from(document.querySelectorAll('#languageSelect option')).some(option=>!['Русский','English'].includes(option.textContent)),toggleFont:parseFloat(getComputedStyle(toggle).fontSize),toggleOpacity:getComputedStyle(toggle).opacity,barBackground:getComputedStyle(bar).backgroundColor,barMask:getComputedStyle(bar,'::before').backgroundColor,metricsBackground:getComputedStyle(metrics).backgroundColor,metricsZ:getComputedStyle(metrics).zIndex,nameZ:getComputedStyle(document.querySelector('.tree-name')).zIndex,metricsWidth:metrics.getBoundingClientRect().width,contentsWidth:bar.getBoundingClientRect().width+value.getBoundingClientRect().width};
+  })()`);
+  if (structure.rootTop === undefined || structure.leftTop <= structure.rootBottom || structure.rightTop <= structure.rootBottom || !(structure.leftX < structure.rootX && structure.rootX < structure.rightX)) failures.push(`Top-down graph layout failed: ${JSON.stringify(structure)}`);
+  if (structure.detailsButton || !structure.flagSvg || structure.emojiLanguage) failures.push(`Toolbar or embedded language flags failed: ${JSON.stringify(structure)}`);
+  if (structure.toggleFont < 20 || structure.toggleOpacity !== '0' || structure.barBackground === 'rgba(0, 0, 0, 0)' || structure.barMask === 'rgba(0, 0, 0, 0)' || structure.metricsBackground === 'rgba(0, 0, 0, 0)' || Number(structure.metricsZ) <= Number(structure.nameZ) || structure.metricsWidth <= structure.contentsWidth) failures.push(`Tree controls or opaque metric column failed: ${JSON.stringify(structure)}`);
+
+  const collapse = await evaluate(`(() => {
+    const before=document.querySelectorAll('.tree-row').length;
+    document.querySelector('.tree-row .tree-toggle').click();
+    const collapsed=document.querySelectorAll('.tree-row').length;
+    document.querySelector('.tree-row .tree-toggle').click();
+    return {before,collapsed,expanded:document.querySelectorAll('.tree-row').length};
+  })()`);
+  if (!(collapse.collapsed < collapse.before && collapse.expanded === collapse.before)) failures.push(`Tree collapse failed: ${JSON.stringify(collapse)}`);
+
+  const rowsMetric = await evaluate(`(() => {
+    document.querySelector('[data-metric="rows"]').click();
+    const segments=nodeId=>{
+      const graphCard=document.querySelector('.node-card[data-subplan="false"][data-node-id="'+nodeId+'"]');
+      const row=document.querySelector('.tree-row[data-id="'+graphCard.dataset.id+'"]');
+      return Array.from(row.querySelectorAll('.rows-segment')).map(segment=>({series:segment.dataset.series,left:parseFloat(segment.style.left)||0,width:parseFloat(segment.style.width)||0,severity:Array.from(segment.classList).find(value=>value.startsWith('severity-'))}));
+    };
+    return {high:segments('1'),low:segments('4'),legend:document.querySelectorAll('#metricNotice .metric-dot').length};
+  })()`);
+  const highEstimate=rowsMetric.high.find(segment=>segment.series==='estimate'),highActual=rowsMetric.high.find(segment=>segment.series==='actual');
+  const lowEstimate=rowsMetric.low.find(segment=>segment.series==='estimate'),lowActual=rowsMetric.low.find(segment=>segment.series==='actual');
+  if (!highEstimate || !highActual || Math.abs(highEstimate.width-1)>0.1 || Math.abs(highActual.left-1)>0.1 || Math.abs(highActual.width-99)>0.1 || highActual.severity!=='severity-2' || !lowEstimate || !lowActual || Math.abs(lowEstimate.width-1)>0.1 || lowEstimate.severity!=='severity-4' || rowsMetric.legend!==4) failures.push(`Rows metric scale or estimate/actual segments failed: ${JSON.stringify(rowsMetric)}`);
+  await evaluate(`document.querySelector('[data-metric="time"]').click()`);
+
+  const treePoint = await evaluate(`(() => {const tree=document.getElementById('tree');tree.scrollLeft=0;const r=tree.getBoundingClientRect();return {x:r.right-25,y:r.top+80,left:r.left+25,canPan:tree.scrollWidth>tree.clientWidth}})()`);
+  if (treePoint.canPan) {
+    await send('Input.dispatchMouseEvent',{type:'mousePressed',x:treePoint.x,y:treePoint.y,button:'left',clickCount:1});
+    await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:treePoint.left,y:treePoint.y,button:'left',buttons:1});
+    await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:treePoint.left,y:treePoint.y,button:'left',clickCount:1});
+  }
+  const horizontalPan = await evaluate("document.getElementById('tree').scrollLeft");
+  if (treePoint.canPan && horizontalPan <= 0) failures.push(`Tree horizontal drag failed: ${JSON.stringify({treePoint,horizontalPan})}`);
+
+  const wheelPoint = await evaluate(`(() => {const tree=document.getElementById('tree');tree.style.maxHeight='120px';tree.scrollTop=0;const r=tree.getBoundingClientRect();return {x:r.left+40,y:r.top+60}})()`);
+  await send('Input.dispatchMouseEvent',{type:'mouseWheel',x:wheelPoint.x,y:wheelPoint.y,deltaX:0,deltaY:120});
+  await delay(100);
+  const verticalWheel = await evaluate(`(() => {const tree=document.getElementById('tree');const top=tree.scrollTop;tree.style.maxHeight='';return top})()`);
+  if (verticalWheel <= 0) failures.push(`Tree vertical wheel scrolling failed: ${verticalWheel}`);
+
+  const targetId = await evaluate("document.querySelector('.node-card[data-subplan=\"false\"][data-node-id=\"4\"]').dataset.id");
+  await evaluate(`document.querySelector('.tree-row[data-id=${JSON.stringify(targetId)}]').click()`);
+  await delay(500);
+  const camera = await evaluate(`(() => {const canvas=document.getElementById('canvasWrap'),card=document.querySelector('.node-card[data-id=${JSON.stringify(targetId)}]'),drawer=document.getElementById('detailsDrawer');const expectedLeft=Math.max(0,Math.min(canvas.scrollWidth-canvas.clientWidth,(card.offsetLeft+card.offsetWidth/2)-canvas.clientWidth/2));const expectedTop=Math.max(0,Math.min(canvas.scrollHeight-canvas.clientHeight,(card.offsetTop+card.offsetHeight/2)-canvas.clientHeight/2));return {selected:card.classList.contains('selected'),drawer:drawer.classList.contains('open'),leftError:Math.abs(canvas.scrollLeft-expectedLeft),topError:Math.abs(canvas.scrollTop-expectedTop)}})()`);
+  if (!camera.selected || !camera.drawer || camera.leftError > 3 || camera.topError > 3) failures.push(`Tree-to-graph camera focus failed: ${JSON.stringify(camera)}`);
+  const repeatedSelection = await evaluate(`(() => {document.querySelector('.tree-row[data-id=${JSON.stringify(targetId)}]').click();return {selected:document.querySelectorAll('.node-card.selected').length,drawer:document.getElementById('detailsDrawer').classList.contains('open')}})()`);
+  if (repeatedSelection.selected || repeatedSelection.drawer) failures.push(`Repeated node click did not clear selection: ${JSON.stringify(repeatedSelection)}`);
+
+  const graphToTreeId = await evaluate("document.querySelector('.node-card[data-subplan=\"true\"][data-node-id=\"3\"]').dataset.id");
+  await evaluate(`(() => {const tree=document.getElementById('tree');tree.style.maxHeight='120px';tree.scrollTop=0;document.querySelector('.tree-row .tree-toggle').click();document.querySelector('.node-card[data-id=${JSON.stringify(graphToTreeId)}]').click()})()`);
+  await delay(500);
+  const graphToTree = await evaluate(`(() => {const tree=document.getElementById('tree'),row=document.querySelector('.tree-row[data-id=${JSON.stringify(graphToTreeId)}]');const result={rows:document.querySelectorAll('.tree-row').length,exists:Boolean(row),selected:row?.classList.contains('selected'),scrollTop:tree.scrollTop,drawer:document.getElementById('detailsDrawer').classList.contains('open')};tree.style.maxHeight='';return result})()`);
+  if (!graphToTree.exists || !graphToTree.selected || graphToTree.rows<=1 || graphToTree.scrollTop<=0 || !graphToTree.drawer) failures.push(`Graph-to-tree camera focus failed: ${JSON.stringify(graphToTree)}`);
+
+  const elapsedDetails = await evaluate(`(() => {document.querySelector('.node-card[data-subplan="false"][data-node-id="0"]').click();const rootText=document.getElementById('drawerBody').textContent;document.querySelector('.node-card[data-subplan="false"][data-node-id="1"]').click();const bridgedText=document.getElementById('drawerBody').textContent;return {actual:rootText.includes('5.85 min'),exclusive:rootText.includes('≈ 2.97 min'),cpu:rootText.includes('1.56 min'),bridged:bridgedText.includes('≈ 0 ms'),note:Boolean(document.querySelector('#drawerBody .detail-note'))}})()`);
+  if (!elapsedDetails.actual || !elapsedDetails.exclusive || !elapsedDetails.cpu || !elapsedDetails.bridged || !elapsedDetails.note) failures.push(`Elapsed-time details or missing-child bridge failed: ${JSON.stringify(elapsedDetails)}`);
+
+  const emptySelection = await evaluate(`(() => {document.querySelector('.node-card[data-subplan="false"][data-node-id="4"]').click();const opened=document.getElementById('detailsDrawer').classList.contains('open');document.getElementById('graph').dispatchEvent(new MouseEvent('click',{bubbles:true}));return {opened,selected:document.querySelectorAll('.node-card.selected').length,drawer:document.getElementById('detailsDrawer').classList.contains('open')}})()`);
+  if (!emptySelection.opened || emptySelection.selected || emptySelection.drawer) failures.push(`Empty graph click did not clear selection: ${JSON.stringify(emptySelection)}`);
+
+  const lockState = await evaluate(`(() => {
+    document.querySelector('.node-card[data-subplan="false"][data-node-id="0"]').click();
+    const drawerOpened=document.getElementById('detailsDrawer').classList.contains('open');
+    const check=document.getElementById('hideDetailsCheck');check.checked=true;check.dispatchEvent(new Event('change',{bubbles:true}));
+    document.querySelector('.node-card[data-subplan="false"][data-node-id="4"]').click();
+    const stayedClosed=!document.getElementById('detailsDrawer').classList.contains('open')&&document.getElementById('detailsHandle').classList.contains('visible');
+    document.getElementById('detailsHandle').click();
+    return {drawerOpened,stayedClosed,unlocked:document.getElementById('detailsDrawer').classList.contains('open')};
+  })()`);
+  const graphWheel = await evaluate(`(() => {const canvas=document.getElementById('canvasWrap');canvas.scrollTop=0;const before=document.getElementById('zoomLabel').textContent,canScroll=canvas.scrollHeight>canvas.clientHeight;canvas.dispatchEvent(new WheelEvent('wheel',{deltaY:140,clientX:100,clientY:100,cancelable:true,bubbles:true}));return {top:canvas.scrollTop,before,after:document.getElementById('zoomLabel').textContent,canScroll}})()`);
+  if ((graphWheel.canScroll && graphWheel.top<=0) || graphWheel.after!==graphWheel.before) failures.push(`Plain graph wheel did not scroll without zooming: ${JSON.stringify(graphWheel)}`);
+  const interaction = await evaluate(`(() => {
+    const language=document.getElementById('languageSelect');language.value='ru';language.dispatchEvent(new Event('change',{bubbles:true}));
+    const russian=document.getElementById('menuBtn').textContent,ruFlag=Boolean(document.querySelector('#languageFlag svg'));
+    language.value='en';language.dispatchEvent(new Event('change',{bubbles:true}));
+    const english=document.getElementById('menuBtn').textContent,enFlag=Boolean(document.querySelector('#languageFlag svg'));
+    const canvas=document.getElementById('canvasWrap');const before=document.getElementById('zoomLabel').textContent;canvas.dispatchEvent(new WheelEvent('wheel',{deltaY:-150,ctrlKey:true,clientX:100,clientY:100,cancelable:true,bubbles:true}));const after=document.getElementById('zoomLabel').textContent;
+    document.getElementById('menuBtn').click();
+    return {russian,english,ruFlag,enFlag,before,after,homeVisible:!document.getElementById('homeSidebar').classList.contains('hidden'),viewerButtonsHidden:document.getElementById('menuBtn').classList.contains('hidden')&&document.getElementById('historyBtn').classList.contains('hidden'),languageSaved:localStorage.getItem('sql-plan-language')};
+  })()`);
+  if (!lockState.drawerOpened || !lockState.stayedClosed || !lockState.unlocked) failures.push(`Graph click or details locking failed: ${JSON.stringify(lockState)}`);
+  if (interaction.russian !== 'Возврат в меню' || interaction.english !== 'Back to menu' || !interaction.ruFlag || !interaction.enFlag || interaction.languageSaved !== 'en') failures.push(`Language switching failed: ${JSON.stringify(interaction)}`);
+  if (interaction.before === interaction.after) failures.push(`Graph zoom failed: ${JSON.stringify(interaction)}`);
+  if (!interaction.homeVisible || !interaction.viewerButtonsHidden) failures.push(`Home screen state failed: ${JSON.stringify(interaction)}`);
+  if (plans.length > 10 && (!timeAlerts || !rowAlerts || maxIndent <= 105)) failures.push(`PEV2 alerts or deep indentation missing: ${JSON.stringify({timeAlerts,rowAlerts,maxIndent})}`);
   socket.close();
   if (browserErrors.length) failures.push(...browserErrors.map(x => `Browser exception: ${x}`));
   if (failures.length) {

@@ -10,7 +10,7 @@ SSQPE is a self-contained, offline visualizer and analyzer for Microsoft SQL Ser
 - Drag-and-drop, file picker, and pasted ShowPlan XML input.
 - Actual and estimated rows, elapsed time, CPU, estimated cost, executions, reads, spills, warnings, predicates, objects, output columns, and per-thread counters.
 - A hierarchical operator list with Time, Cost, and Rows views.
-- A pannable and zoomable node graph with expandable nodes and a lockable details drawer.
+- A top-down, pannable, and zoomable node graph with expandable nodes and a lockable details drawer.
 - PEV2-style severity badges for slow operators and row-estimation errors.
 - Structural detection of repeated subtrees, rendered as reusable subplans with call-site links.
 - Multi-statement plans and statements that do not contain a physical operator tree.
@@ -36,9 +36,13 @@ No web server is required. The HTML file can be copied to an offline workstation
 | Action | Control |
 | --- | --- |
 | Pan the graph | Drag with the left mouse button |
-| Zoom the graph | Mouse wheel over the graph |
-| Pan the operator list | Hold **Ctrl** and drag with the left mouse button |
-| Inspect an operator | Click its graph node or list row |
+| Zoom the graph | Hold **Ctrl** and use the mouse wheel over the graph |
+| Scroll the graph vertically | Use the mouse wheel over the graph |
+| Pan the operator list horizontally | Drag with the left mouse button |
+| Scroll the operator list vertically | Use the mouse wheel |
+| Collapse or expand a list subtree | Select the chevron beside its parent operator |
+| Inspect an operator | Click its graph node or list row; each view centers its camera on the matching operator in the other view |
+| Clear the selected operator | Click it again or click empty graph space |
 | Keep details closed | Select **Keep details hidden** in the details drawer |
 | Reset graph position and zoom | Select **Reset view** |
 
@@ -50,6 +54,10 @@ SSQPE follows the thresholds used by PEV2 1.23.0:
 - row-estimation list: an error factor above **10× / 100× / 1000×** gives a yellow / orange / red badge.
 
 For elapsed-time severity, SSQPE compares an operator's exclusive elapsed time with the statement root time. Some SQL Server plans contain runtime row counters but omit `ActualElapsedms`; SSQPE shows `—` instead of inventing a zero duration.
+
+The Rows view uses the largest estimated or actual row count in the statement as 100%. Its dark segment represents the estimate and its bright segment represents the actual count; the extension beyond the shorter segment makes under- and overestimation visible. Green, yellow, orange, and red shades use the same 10× / 100× / 1000× error thresholds as the badges.
+
+SQL Server exposes elapsed time for an operator, but not a reliable exclusive elapsed counter. SSQPE therefore labels its own value as **Exclusive elapsed time (derived)** and calculates it as the operator elapsed time minus the greatest available elapsed time on its child paths. If an immediate child has no `ActualElapsedms`, SSQPE follows that path to its nearest measured descendants instead of treating the missing value as zero. This is a critical-path approximation: parallel workers and streaming pipelines overlap, so the value must not be interpreted as an exact duration measured by SQL Server. CPU time is aggregated across workers and is intentionally shown separately.
 
 ## Privacy and local storage
 
