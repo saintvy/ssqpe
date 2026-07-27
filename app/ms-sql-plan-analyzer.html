@@ -85,6 +85,9 @@
     .tree-bar .subtree, .tree-bar .self { position: absolute; z-index: 1; left: 0; top: 0; bottom: 0; min-width: 0; }
     .tree-bar .subtree { opacity: .27; }
     .tree-bar .self { opacity: .92; }
+    .tree-bar .time-elapsed, .tree-bar .time-cpu { position: absolute; z-index: 1; left: 0; top: 0; bottom: 0; min-width: 0; background: var(--time); }
+    .tree-bar .time-elapsed { opacity: .3; }
+    .tree-bar .time-cpu { opacity: .95; }
     .tree-bar .rows-segment { position: absolute; z-index: 1; top: 0; bottom: 0; min-width: 0; }
     .tree-bar .rows-estimate.severity-0 { background: #34485a; }
     .tree-bar .rows-actual.severity-0 { background: #4fd0a4; }
@@ -816,7 +819,7 @@
     }
 
     function metricValues(node) {
-      return state.metric === 'time' ? { subtree: node.elapsed, self: node.selfTime } : { subtree: node.estimatedCost, self: node.selfCost };
+      return { subtree: node.estimatedCost, self: node.selfCost };
     }
 
     function visibleTreeNodes(roots) {
@@ -856,13 +859,14 @@
       const allNodes = flatten(s.roots);
       const nodes = visibleTreeNodes(s.roots);
       const timeMissing = state.metric === 'time' && !allNodes.some(n => n.runtime?.hasElapsed);
-      if (timeMissing) els.metricNotice.textContent = t('timeUnavailable');
+      if (state.metric === 'time') els.metricNotice.innerHTML = `${timeMissing?`<span>${esc(t('timeUnavailable'))}</span>`:''}<span class="rows-legend"><span><i class="metric-dot" style="background:#246653"></i>${esc(t('actualTime'))}</span><span><i class="metric-dot" style="background:var(--time)"></i>CPU</span></span>`;
       else if (state.metric === 'rows') els.metricNotice.innerHTML = `<span class="rows-legend"><span><i class="metric-dot" style="background:#4fd0a4"></i>${esc(t('closeShort'))}</span><span><i class="metric-dot" style="background:#fddb61"></i>${esc(t('rowSeverity2'))}</span><span><i class="metric-dot" style="background:#ee8800"></i>${esc(t('rowSeverity3'))}</span><span><i class="metric-dot" style="background:#ff5964"></i>${esc(t('rowSeverity4'))}</span></span>`;
       else els.metricNotice.textContent = '';
       const maximum = state.metric === 'rows'
         ? Math.max(...allNodes.flatMap(n => [n.estimatedRows, n.runtime?.hasRows ? n.runtime.ActualRows : 0]), 0.0000001)
+        : state.metric === 'time'
+          ? Math.max(...allNodes.flatMap(n => [n.runtime?.hasElapsed ? n.runtime.ActualElapsedms : 0, n.runtime?.hasCPU ? n.runtime.ActualCPUms : 0]), 0.0000001)
         : Math.max(...s.roots.map(r => metricValues(r).subtree || 0), ...allNodes.map(n => metricValues(n).subtree || 0), 0.0000001);
-      const color = state.metric === 'time' ? 'var(--time)' : 'var(--cost)';
       const rows = nodes.map(n => {
         if (state.metric === 'rows') {
           const estimated = n.estimatedRows;
@@ -878,16 +882,27 @@
             <div class="tree-value" title="${esc(t('estimate'))} / ${esc(t('actual'))}">${formatNumber(estimated)} / ${actual===null?t('missing'):formatNumber(actual)}</div></div>
           </div>`;
         }
+        if (state.metric === 'time') {
+          const hasElapsed=Boolean(n.runtime?.hasElapsed),hasCPU=Boolean(n.runtime?.hasCPU);
+          const elapsed=hasElapsed?n.runtime.ActualElapsedms:null,cpu=hasCPU?n.runtime.ActualCPUms:null;
+          const elapsedWidth=hasElapsed?Math.min(100,100*elapsed/maximum):0,cpuWidth=hasCPU?Math.min(100,100*cpu/maximum):0;
+          return `<div class="tree-row ${n.id===state.selectedId?'selected':''}" data-id="${esc(n.id)}" style="--depth:${n.depth}">
+            ${treeToggle(n)}
+            <div class="tree-name"><span class="tree-op">${n.duplicateGroup?'<span class="call-mark">↗</span>':''}${esc(n.physical)}</span><span class="tree-object">${esc(n.objectLabel || n.logical || '')}</span></div>
+            <div class="tree-metrics"><div class="tree-bar" title="${esc(t('actualTime'))}: ${esc(formatMs(elapsed))}; CPU: ${esc(formatMs(cpu))}">${hasElapsed?`<span class="time-elapsed" data-series="elapsed" style="width:${elapsedWidth}%"></span>`:''}${hasCPU?`<span class="time-cpu" data-series="cpu" style="width:${cpuWidth}%"></span>`:''}</div>
+            <div class="tree-value" title="CPU">${esc(formatMs(cpu))}</div></div>
+          </div>`;
+        }
         const v = metricValues(n);
         const subWidth = Math.min(100, 100 * (v.subtree || 0) / maximum);
         const selfWidth = Math.min(subWidth, 100 * (v.self || 0) / maximum);
-        const subtreeValue = state.metric === 'time' ? formatMs(v.subtree) : formatNumber(v.subtree);
-        const value = state.metric === 'time' ? formatMs(v.self) : subtreeValue;
+        const subtreeValue = formatNumber(v.subtree);
+        const value = subtreeValue;
         return `<div class="tree-row ${n.id===state.selectedId?'selected':''}" data-id="${esc(n.id)}" style="--depth:${n.depth}">
           ${treeToggle(n)}
           <div class="tree-name"><span class="tree-op">${n.duplicateGroup?'<span class="call-mark">↗</span>':''}${esc(n.physical)}</span><span class="tree-object">${esc(n.objectLabel || n.logical || '')}</span></div>
-          <div class="tree-metrics"><div class="tree-bar" title="${esc(t('subtree'))}: ${esc(subtreeValue)}; ${esc(state.metric==='time'?t('exclusiveTime'):t('selfCost'))}: ${esc(state.metric==='time'?formatMs(v.self):formatNumber(v.self))}"><span class="subtree" style="width:${subWidth}%;background:${color}"></span><span class="self" style="width:${selfWidth}%;background:${color}"></span></div>
-          <div class="tree-value" title="${esc(state.metric==='time'?t('exclusiveTime'):t('subtree'))}">${esc(value)}</div></div>
+          <div class="tree-metrics"><div class="tree-bar" title="${esc(t('subtree'))}: ${esc(subtreeValue)}; ${esc(t('selfCost'))}: ${esc(formatNumber(v.self))}"><span class="subtree" style="width:${subWidth}%;background:var(--cost)"></span><span class="self" style="width:${selfWidth}%;background:var(--cost)"></span></div>
+          <div class="tree-value" title="${esc(t('subtree'))}">${esc(value)}</div></div>
         </div>`;
       }).join('');
       const contentWidth = 390 + Math.max(0, ...nodes.map(n => n.depth)) * 15;

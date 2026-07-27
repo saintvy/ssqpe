@@ -55,9 +55,11 @@ SSQPE follows the thresholds used by PEV2 1.23.0:
 
 For elapsed-time severity, SSQPE compares an operator's exclusive elapsed time with the statement root time. Some SQL Server plans contain runtime row counters but omit `ActualElapsedms`; SSQPE shows `—` instead of inventing a zero duration.
 
+The Time view in the operator list uses only counters reported by SQL Server. Its dark bar is `ActualElapsedms`, its bright bar is `ActualCPUms`, and the numeric value is CPU time. Both bars share one scale normalized to the largest elapsed or CPU value in the statement, so CPU can extend beyond elapsed in a parallel plan.
+
 The Rows view uses the largest estimated or actual row count in the statement as 100%. Its dark segment represents the estimate and its bright segment represents the actual count; the extension beyond the shorter segment makes under- and overestimation visible. Green, yellow, orange, and red shades use the same 10× / 100× / 1000× error thresholds as the badges.
 
-SQL Server exposes elapsed time for an operator, but not a reliable exclusive elapsed counter. SSQPE therefore labels its own value as **Exclusive elapsed time (derived)** and calculates it as the operator elapsed time minus the greatest elapsed time among all of its measured descendants. This prevents short or untimed intermediate operators from hiding a longer-running node deeper on the same execution path. This is a critical-path approximation: parallel workers and streaming pipelines overlap, so the value must not be interpreted as an exact duration measured by SQL Server. CPU time is aggregated across workers and is intentionally shown separately.
+SQL Server exposes elapsed time for an operator, but not a reliable exclusive elapsed counter. SSQPE therefore labels its detail-panel approximation as **Exclusive elapsed time (derived)** and calculates it as the operator elapsed time minus the greatest elapsed time among all of its measured descendants. This prevents short or untimed intermediate operators from hiding a longer-running node deeper on the same execution path. This value is used for slow-operator badges, not for the Time list scale. It is a critical-path approximation: parallel workers and streaming pipelines overlap, so it must not be interpreted as an exact duration measured by SQL Server.
 
 ## Privacy and local storage
 

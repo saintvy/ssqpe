@@ -138,8 +138,8 @@ try {
         console.log(`PAN ${basename(plan)} ${JSON.stringify(panBenchmark)}`);
       }
       if (basename(plan).toLowerCase() === 'batch_hash_table_build.sqlplan') {
-        const timeState = await evaluate(`(() => {document.querySelector('[data-metric="time"]').click();return {notice:document.getElementById('metricNotice').textContent,values:Array.from(document.querySelectorAll('.tree-value')).map(x=>x.textContent)}})()`);
-        if (!timeState.notice || timeState.values.some(value => value.includes('0 ms') || value.includes('0 мс'))) failures.push(`${plan}: missing elapsed time is shown as zero`);
+        const timeState = await evaluate(`(() => {document.querySelector('[data-metric="time"]').click();return {notice:document.getElementById('metricNotice').textContent,elapsedBars:document.querySelectorAll('.time-elapsed').length}})()`);
+        if (!timeState.notice || timeState.elapsedBars) failures.push(`${plan}: missing elapsed time is represented as measured data: ${JSON.stringify(timeState)}`);
       }
     } catch (error) {
       failures.push(`${plan}: ${error.message}`);
@@ -188,6 +188,16 @@ try {
   const lowEstimate=rowsMetric.low.find(segment=>segment.series==='estimate'),lowActual=rowsMetric.low.find(segment=>segment.series==='actual');
   if (!highEstimate || !highActual || Math.abs(highEstimate.width-1)>0.1 || Math.abs(highActual.left-1)>0.1 || Math.abs(highActual.width-99)>0.1 || highActual.severity!=='severity-2' || !lowEstimate || !lowActual || Math.abs(lowEstimate.width-1)>0.1 || lowEstimate.severity!=='severity-4' || rowsMetric.legend!==4) failures.push(`Rows metric scale or estimate/actual segments failed: ${JSON.stringify(rowsMetric)}`);
   await evaluate(`document.querySelector('[data-metric="time"]').click()`);
+  const timeMetric = await evaluate(`(() => {
+    const series=nodeId=>{
+      const card=document.querySelector('.node-card[data-subplan="false"][data-node-id="'+nodeId+'"]');
+      const row=document.querySelector('.tree-row[data-id="'+card.dataset.id+'"]');
+      const width=name=>parseFloat(row.querySelector('[data-series="'+name+'"]').style.width)||0;
+      return {elapsed:width('elapsed'),cpu:width('cpu'),value:row.querySelector('.tree-value').textContent};
+    };
+    return {root:series('0'),child:series('1'),legend:document.querySelectorAll('#metricNotice .metric-dot').length};
+  })()`);
+  if (Math.abs(timeMetric.root.elapsed-100)>0.1 || Math.abs(timeMetric.root.cpu-(93600/351000*100))>0.1 || timeMetric.root.value!=='1.56 min' || Math.abs(timeMetric.child.elapsed-(172800/351000*100))>0.1 || Math.abs(timeMetric.child.cpu-(50000/351000*100))>0.1 || timeMetric.child.value!=='50.00 s' || timeMetric.legend!==2) failures.push(`Time metric elapsed/CPU scale failed: ${JSON.stringify(timeMetric)}`);
 
   const treePoint = await evaluate(`(() => {const tree=document.getElementById('tree');tree.scrollLeft=0;const r=tree.getBoundingClientRect();return {x:r.right-25,y:r.top+80,left:r.left+25,canPan:tree.scrollWidth>tree.clientWidth}})()`);
   if (treePoint.canPan) {
@@ -219,7 +229,7 @@ try {
   if (!graphToTree.exists || !graphToTree.selected || graphToTree.rows<=1 || graphToTree.scrollTop<=0 || !graphToTree.drawer) failures.push(`Graph-to-tree camera focus failed: ${JSON.stringify(graphToTree)}`);
 
   const elapsedDetails = await evaluate(`(() => {const card=id=>document.querySelector('.node-card[data-node-id="'+id+'"]'),rowValue=id=>document.querySelector('.tree-row[data-id="'+card(id).dataset.id+'"] .tree-value').textContent;card('0').click();const rootText=document.getElementById('drawerBody').textContent,rootValue=rowValue('0');card('1').click();const bridgedText=document.getElementById('drawerBody').textContent,bridgedValue=rowValue('1');card('7').click();const deepText=document.getElementById('drawerBody').textContent,deepValue=rowValue('7');return {actual:rootText.includes('5.85 min'),exclusive:rootText.includes('≈ 2.97 min'),cpu:rootText.includes('1.56 min'),rootValue,bridged:bridgedText.includes('≈ 0 ms'),bridgedValue,deep:deepText.includes('≈ 2.80 s'),deepValue,note:Boolean(document.querySelector('#drawerBody .detail-note'))}})()`);
-  if (!elapsedDetails.actual || !elapsedDetails.exclusive || !elapsedDetails.cpu || elapsedDetails.rootValue!=='2.97 min' || !elapsedDetails.bridged || elapsedDetails.bridgedValue!=='0 ms' || !elapsedDetails.deep || elapsedDetails.deepValue!=='2.80 s' || !elapsedDetails.note) failures.push(`Elapsed-time descendant traversal or displayed contribution failed: ${JSON.stringify(elapsedDetails)}`);
+  if (!elapsedDetails.actual || !elapsedDetails.exclusive || !elapsedDetails.cpu || elapsedDetails.rootValue!=='1.56 min' || !elapsedDetails.bridged || elapsedDetails.bridgedValue!=='50.00 s' || !elapsedDetails.deep || elapsedDetails.deepValue!=='40.00 s' || !elapsedDetails.note) failures.push(`Elapsed-time details or displayed CPU value failed: ${JSON.stringify(elapsedDetails)}`);
 
   const emptySelection = await evaluate(`(() => {document.querySelector('.node-card[data-subplan="false"][data-node-id="4"]').click();const opened=document.getElementById('detailsDrawer').classList.contains('open');document.getElementById('graph').dispatchEvent(new MouseEvent('click',{bubbles:true}));return {opened,selected:document.querySelectorAll('.node-card.selected').length,drawer:document.getElementById('detailsDrawer').classList.contains('open')}})()`);
   if (!emptySelection.opened || emptySelection.selected || emptySelection.drawer) failures.push(`Empty graph click did not clear selection: ${JSON.stringify(emptySelection)}`);
