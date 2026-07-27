@@ -32,6 +32,7 @@
     .topbar { display: flex; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid var(--border); background: #141923; min-width: 0; }
     .brand { display: flex; align-items: center; gap: 10px; font-weight: 720; letter-spacing: .1px; white-space: nowrap; }
     .logo { min-width: 50px; height: 27px; padding: 0 7px; display: grid; place-items: center; border-radius: 8px; color: #08131b; background: linear-gradient(135deg, var(--accent), #5fe0bd); font-size: 12px; font-weight: 900; letter-spacing: .4px; }
+    .app-version { margin-left: -5px; color: var(--muted); font-size: 10px; font-weight: 500; letter-spacing: .25px; }
     .top-actions { display: flex; gap: 8px; margin-left: auto; }
     .language-control { position: relative; display: inline-flex; align-items: center; min-width: 118px; }
     .language-flag { position: absolute; left: 9px; z-index: 1; display: grid; place-items: center; width: 22px; height: 14px; border-radius: 2px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255,255,255,.24); pointer-events: none; }
@@ -203,7 +204,7 @@
     .hidden { display: none !important; }
     @media (max-width: 850px) {
       :root { --left-width: 310px; }
-      .brand span:last-child { display: none; }
+      .brand-title { display: none; }
       .tree-metrics { flex-basis: 171px; width: 171px; }
       .tree-bar { flex-basis: 88px; width: 88px; }
       .tree-value { flex-basis: 58px; width: 58px; }
@@ -214,7 +215,7 @@
 <body>
   <div class="app">
     <header class="topbar">
-      <div class="brand"><span class="logo">SSQPE</span><span>SQL Server Query Plan Explorer</span></div>
+      <div class="brand"><span class="logo">SSQPE</span><span class="brand-title">SQL Server Query Plan Explorer</span><small class="app-version">v0.2.2</small></div>
       <div class="top-actions">
         <button class="btn hidden" id="menuBtn" data-i18n="backToMenu"></button>
         <button class="btn hidden" id="historyBtn"><span data-i18n="history"></span> <span id="historyCount"></span></button>

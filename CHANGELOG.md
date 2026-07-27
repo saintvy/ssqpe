@@ -6,9 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-07-27
+
 ### Changed
 
 - Replaced fixed leaf-slot graph positioning with contour-based tidy-tree packing so sibling subtrees use nearby free space while preserving node clearance and parent centering.
+- Added a subtle application-version label beside the SSQPE title.
 
 ## [0.2.1] - 2026-07-27
 
