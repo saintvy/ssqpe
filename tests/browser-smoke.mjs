@@ -161,7 +161,7 @@ try {
   })()`);
   if (structure.rootTop === undefined || structure.leftTop <= structure.rootBottom || structure.rightTop <= structure.rootBottom || !(structure.leftX < structure.rootX && structure.rootX < structure.rightX)) failures.push(`Top-down graph layout failed: ${JSON.stringify(structure)}`);
   if (structure.detailsButton || !structure.flagSvg || structure.emojiLanguage) failures.push(`Toolbar or embedded language flags failed: ${JSON.stringify(structure)}`);
-  if (structure.version!=='v0.2.2' || structure.versionFont>11 || structure.versionColor==='rgb(237, 241, 247)') failures.push(`Application version label failed: ${JSON.stringify(structure)}`);
+  if (structure.version!=='v0.2.3' || structure.versionFont>11 || structure.versionColor==='rgb(237, 241, 247)') failures.push(`Application version label failed: ${JSON.stringify(structure)}`);
   if (structure.toggleFont < 20 || (structure.toggleOpacity !== '0' && !structure.hoverNone) || structure.barBackground === 'rgba(0, 0, 0, 0)' || structure.barMask === 'rgba(0, 0, 0, 0)' || structure.metricsBackground === 'rgba(0, 0, 0, 0)' || Number(structure.metricsZ) <= Number(structure.nameZ) || structure.metricsWidth <= structure.contentsWidth) failures.push(`Tree controls or opaque metric column failed: ${JSON.stringify(structure)}`);
 
   const collapseBefore = await evaluate(`(() => {document.querySelector('.tree-row').click();const toggle=document.querySelector('.tree-row .tree-toggle'),r=toggle.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;return {before:document.querySelectorAll('.tree-row').length,selectedBefore:document.querySelectorAll('.tree-row.selected').length,x,y,hitToggle:Boolean(document.elementFromPoint(x,y)?.closest('[data-toggle]'))}})()`);
