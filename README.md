@@ -1,42 +1,104 @@
-# SQL Server Plan Explorer
+# SSQPE — SQL Server Query Plan Explorer
 
-Офлайн-анализатор XML-планов Microsoft SQL Server в одном HTML-файле.
+SSQPE is a self-contained, offline visualizer and analyzer for Microsoft SQL Server ShowPlan XML files. It is a vibe-coded SQL Server analogue of [PEV2](https://github.com/dalibo/pev2): open one HTML file, load a plan exported by SQL Server Management Studio, and inspect the operator tree without sending the plan anywhere.
 
-## Запуск
+> Project status: early preview. The parser already handles the supplied actual, estimated, parallel, cursor, multi-statement, columnstore, spill, and spool plans, but SQL Server ShowPlan is a large format and uncommon operators may still need refinement.
 
-Откройте [`app/ms-sql-plan-analyzer.html`](app/ms-sql-plan-analyzer.html) в Chrome, Edge или Firefox. Сервер, установка и доступ в интернет не нужны.
+## Highlights
 
-План можно:
+- One portable HTML file with no server, build step, CDN, or runtime dependency.
+- Drag-and-drop, file picker, and pasted ShowPlan XML input.
+- Actual and estimated rows, elapsed time, CPU, estimated cost, executions, reads, spills, warnings, predicates, objects, output columns, and per-thread counters.
+- A hierarchical operator list with Time, Cost, and Rows views.
+- A pannable and zoomable node graph with expandable nodes and a lockable details drawer.
+- PEV2-style severity badges for slow operators and row-estimation errors.
+- Structural detection of repeated subtrees, rendered as reusable subplans with call-site links.
+- Multi-statement plans and statements that do not contain a physical operator tree.
+- English and Russian UI with the selected language remembered locally.
+- Local plan names and browser-only history backed by IndexedDB.
 
-- перетащить в окно браузера;
-- выбрать с диска (`.sqlplan`, `.sqplan`, `.xml`);
-- вставить как ShowPlan XML.
+## Quick start
 
-Открытые планы сохраняются локально в IndexedDB браузера и доступны через кнопку «История». XML никуда не отправляется.
+1. Download [`app/ms-sql-plan-analyzer.html`](app/ms-sql-plan-analyzer.html), or download it from a GitHub Release.
+2. Open the file in a current Chrome, Edge, or Firefox browser.
+3. Drop an SSMS `.sqlplan` file onto the page, choose a file, or paste ShowPlan XML.
 
-## Возможности первого этапа
+No web server is required. The HTML file can be copied to an offline workstation and opened directly.
 
-- все statements пакета, включая statements без физического `QueryPlan`;
-- иерархический список операторов с переключаемыми полосами фактического времени и оценочной стоимости;
-- метрика строк с отдельными полосами оценки и факта и цветовой индикацией недооценки/переоценки;
-- светлая часть полосы показывает нагрузку поддерева, тёмная — собственную нагрузку оператора;
-- интерактивный граф с названиями физических/логических операторов, объектами и ключевыми метриками;
-- перемещение графа перетаскиванием ЛКМ и масштабирование `Ctrl + колесо мыши` без изменения масштаба страницы;
-- перемещение списка операторов через `Ctrl + перетаскивание ЛКМ`;
-- оценочные и фактические строки, elapsed/CPU, стоимость, executions, logical/physical/read-ahead reads, rebinds/rewinds;
-- выходные столбцы, определяемые значения, предикаты, объекты, предупреждения, spills и счётчики отдельных потоков;
-- автоматическое выделение одинаковых структурных поддеревьев размером от трёх узлов в отдельную область с пунктирными связями от мест вызова;
-- actual и estimated plans, параллельные планы и несколько корней/QueryPlan в одном файле.
-- русский и английский интерфейс с сохранением последнего выбранного языка;
-- пользовательское имя плана и история на главном экране;
-- фиксируемая в закрытом состоянии панель подробностей оператора.
+### Exporting a plan from SSMS
 
-Если ShowPlan содержит фактические строки, но не содержит `ActualElapsedms` (например, предоставленный `batch_hash_table_build.sqlplan`), анализатор показывает для времени `—` и пояснение вместо ошибочного значения `0 мс`.
+1. Display an estimated plan with **Ctrl+L**, or include the actual execution plan with **Ctrl+M** and run the query.
+2. In the execution-plan tab, choose **Save Execution Plan As…**.
+3. Open the resulting `.sqlplan` file in SSQPE.
 
-## Проверка
+## Controls
 
-```powershell
-node tests\browser-smoke.mjs
+| Action | Control |
+| --- | --- |
+| Pan the graph | Drag with the left mouse button |
+| Zoom the graph | Mouse wheel over the graph |
+| Pan the operator list | Hold **Ctrl** and drag with the left mouse button |
+| Inspect an operator | Click its graph node or list row |
+| Keep details closed | Select **Keep details hidden** in the details drawer |
+| Reset graph position and zoom | Select **Reset view** |
+
+## Severity badges
+
+SSQPE follows the thresholds used by PEV2 1.23.0:
+
+- slow operator clock: more than **10% / 40% / 90%** of total execution time gives a yellow / orange / red badge;
+- row-estimation list: an error factor above **10× / 100× / 1000×** gives a yellow / orange / red badge.
+
+For elapsed-time severity, SSQPE compares an operator's exclusive elapsed time with the statement root time. Some SQL Server plans contain runtime row counters but omit `ActualElapsedms`; SSQPE shows `—` instead of inventing a zero duration.
+
+## Privacy and local storage
+
+Plan parsing happens entirely in the browser. SSQPE makes no network requests and does not upload query text, object names, predicates, or runtime statistics.
+
+Opened plans and the selected interface language are stored in the browser's IndexedDB/local storage for the local HTML origin. Use **Clear** on the history screen to remove saved plans.
+
+Execution plans can contain sensitive SQL text, database names, schema names, object names, literals, and operational statistics. Review a plan before sharing it or attaching it to a public issue.
+
+## Development and tests
+
+The committed smoke test has no package dependencies and uses an installed Chrome, Chromium, or Edge browser:
+
+```bash
+node tests/browser-smoke.mjs
 ```
 
-Smoke-тест запускает установленный Chrome/Edge в headless-режиме, открывает все планы из `Test data` и отдельно проверяет отображение повторно используемого подплана.
+In a public clone it runs against an embedded synthetic ShowPlan fixture. Maintainers can keep a private `Test data/` directory; when present, the same test automatically opens every `.sqlplan` and `.sqplan` file below it and performs additional regression checks.
+
+Set `CHROME_PATH` if the browser executable is not in a standard location.
+
+## Publishing
+
+The repository includes three dependency-free GitHub workflows:
+
+- `ci.yml` runs the synthetic browser smoke test on pushes and pull requests;
+- `pages.yml` publishes the single HTML file as the GitHub Pages `index.html` from `main`;
+- `release.yml` creates a GitHub Release and attaches a versioned standalone HTML file when a `v*` tag is pushed.
+
+For example, after updating the changelog:
+
+```bash
+git tag v0.1.0
+git push origin main --tags
+```
+
+## Contributing
+
+Bug reports and focused pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change. Please use anonymized plans or minimal synthetic fixtures in public reports.
+
+For security-sensitive reports, follow [SECURITY.md](SECURITY.md).
+
+## Inspiration and acknowledgements
+
+- [PEV2](https://github.com/dalibo/pev2) by Dalibo inspired the interaction model, subtree visualization, and severity thresholds.
+- [html-query-plan](https://github.com/JustinPealing/html-query-plan) was used as a reference for the SQL Server ShowPlan format and operator presentation.
+
+SSQPE is an independent project and is not affiliated with or endorsed by Dalibo, Microsoft, or the html-query-plan maintainers. Microsoft, SQL Server, and SSMS are trademarks of the Microsoft group of companies.
+
+## License
+
+[MIT](LICENSE)

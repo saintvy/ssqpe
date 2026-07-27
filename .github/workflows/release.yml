@@ -1,0 +1,20 @@
+name: Publish release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare release asset
+        run: cp app/ms-sql-plan-analyzer.html "SSQPE-${GITHUB_REF_NAME}.html"
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" "SSQPE-${GITHUB_REF_NAME}.html" --generate-notes --title "SSQPE ${GITHUB_REF_NAME}"

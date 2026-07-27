@@ -1,0 +1,15 @@
+# Local research material and large SQL Server fixtures
+/References/
+/Test data/
+
+# Generated test artifacts
+/tests/*.png
+/tests/*.html
+
+# Common local files
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
