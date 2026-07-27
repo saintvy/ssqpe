@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Replaced fixed leaf-slot graph positioning with contour-based tidy-tree packing so sibling subtrees use nearby free space while preserving node clearance and parent centering.
+
 ## [0.2.1] - 2026-07-27
 
 ### Fixed

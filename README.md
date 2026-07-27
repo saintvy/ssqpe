@@ -10,7 +10,7 @@ SSQPE is a self-contained, offline visualizer and analyzer for Microsoft SQL Ser
 - Drag-and-drop, file picker, and pasted ShowPlan XML input.
 - Actual and estimated rows, elapsed time, CPU, estimated cost, executions, reads, spills, warnings, predicates, objects, output columns, and per-thread counters.
 - A hierarchical operator list with Time, Cost, and Rows views.
-- A top-down, pannable, and zoomable node graph with expandable nodes and a lockable details drawer.
+- A compact contour-packed, top-down, pannable, and zoomable node graph with expandable nodes and a lockable details drawer.
 - PEV2-style severity badges for slow operators and row-estimation errors.
 - Structural detection of repeated subtrees, rendered as reusable subplans with call-site links.
 - Multi-statement plans and statements that do not contain a physical operator tree.
@@ -104,6 +104,7 @@ For security-sensitive reports, follow [SECURITY.md](SECURITY.md).
 
 - [PEV2](https://github.com/dalibo/pev2) by Dalibo inspired the interaction model, subtree visualization, and severity thresholds.
 - [html-query-plan](https://github.com/JustinPealing/html-query-plan) was used as a reference for the SQL Server ShowPlan format and operator presentation.
+- Reingold and Tilford's [tidy-tree algorithm](https://www.reingold.co/tidier-drawings.pdf) inspired the contour-based graph packing.
 
 SSQPE is an independent project and is not affiliated with or endorsed by Dalibo, Microsoft, or the html-query-plan maintainers. Microsoft, SQL Server, and SSMS are trademarks of the Microsoft group of companies.
 

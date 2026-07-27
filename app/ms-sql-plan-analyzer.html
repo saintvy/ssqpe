@@ -896,42 +896,82 @@
 
     function layoutGraph(statement) {
       const cardW = 220, cardH = 106, cardMaxW = 278, cardMaxH = 158;
-      const leafStep = 310, levelStep = 190, padX = 50, padY = 36;
-      let nextLeafCenter = padX + cardMaxW / 2;
+      const levelStep = 190, siblingGap = 36, forestGap = 72, padX = 50, padY = 36;
+      const halfCard = cardMaxW / 2;
       const visibleChildren = node => node.duplicateGroup ? [] : node.children;
-      function place(node, depth) {
-        const kids = visibleChildren(node);
-        kids.forEach(k => place(k, depth + 1));
-        const centerX = kids.length
-          ? ((kids[0]._layout.x + cardW / 2) + (kids[kids.length - 1]._layout.x + cardW / 2)) / 2
-          : nextLeafCenter;
-        if (!kids.length) nextLeafCenter += leafStep;
-        node._layout = { x: centerX - cardW / 2, y: padY + depth * levelStep };
+
+      // Reingold-Tilford-style contour packing: siblings move only enough for
+      // their occupied horizontal contours to clear at every shared depth.
+      function tidySubtree(node, childSelector) {
+        const childLayouts = childSelector(node).map(child => tidySubtree(child, childSelector));
+        if (!childLayouts.length) return { entries:[{node,x:0,depth:0}], left:[-halfCard], right:[halfCard] };
+        const combinedLeft = [], combinedRight = [], placements = [];
+        childLayouts.forEach((layout, index) => {
+          let shift = 0;
+          if (index) {
+            layout.left.forEach((left, depth) => {
+              if (combinedRight[depth] !== undefined) shift = Math.max(shift, combinedRight[depth] + siblingGap - left);
+            });
+          }
+          placements.push(shift);
+          layout.left.forEach((left, depth) => {
+            const shiftedLeft = left + shift, shiftedRight = layout.right[depth] + shift;
+            combinedLeft[depth] = combinedLeft[depth] === undefined ? shiftedLeft : Math.min(combinedLeft[depth], shiftedLeft);
+            combinedRight[depth] = combinedRight[depth] === undefined ? shiftedRight : Math.max(combinedRight[depth], shiftedRight);
+          });
+        });
+        const parentX = (placements[0] + placements[placements.length - 1]) / 2;
+        const entries = [{node,x:0,depth:0}];
+        childLayouts.forEach((layout, index) => layout.entries.forEach(entry => entries.push({node:entry.node,x:entry.x+placements[index]-parentX,depth:entry.depth+1})));
+        return {
+          entries,
+          left:[-halfCard,...combinedLeft.map(value => value-parentX)],
+          right:[halfCard,...combinedRight.map(value => value-parentX)]
+        };
       }
-      statement.roots.forEach((root, i) => { place(root, 0); if (i < statement.roots.length-1) nextLeafCenter += 70; });
+
+      function packForest(layouts, gap) {
+        const combinedLeft = [], combinedRight = [], entries = [];
+        layouts.forEach((layout, index) => {
+          let shift = 0;
+          if (index) layout.left.forEach((left, depth) => {
+            if (combinedRight[depth] !== undefined) shift = Math.max(shift, combinedRight[depth] + gap - left);
+          });
+          layout.entries.forEach(entry => entries.push({node:entry.node,x:entry.x+shift,depth:entry.depth}));
+          layout.left.forEach((left, depth) => {
+            const shiftedLeft=left+shift,shiftedRight=layout.right[depth]+shift;
+            combinedLeft[depth]=combinedLeft[depth]===undefined?shiftedLeft:Math.min(combinedLeft[depth],shiftedLeft);
+            combinedRight[depth]=combinedRight[depth]===undefined?shiftedRight:Math.max(combinedRight[depth],shiftedRight);
+          });
+        });
+        return {entries,left:combinedLeft,right:combinedRight};
+      }
+
+      function assignPositions(layout, property, left, top) {
+        const minX = Math.min(...layout.entries.map(entry => entry.x-halfCard));
+        const offsetX = left-minX;
+        layout.entries.forEach(entry => entry.node[property]={x:entry.x+offsetX-cardW/2,y:top+entry.depth*levelStep});
+        return {
+          right:Math.max(...layout.entries.map(entry => entry.x+offsetX+halfCard)),
+          bottom:Math.max(...layout.entries.map(entry => top+entry.depth*levelStep+cardMaxH))
+        };
+      }
+
+      const mainLayout = packForest(statement.roots.map(root => tidySubtree(root, visibleChildren)), forestGap);
+      const mainBounds = assignPositions(mainLayout, '_layout', padX, padY);
       const mainNodes = flatten(statement.roots).filter(n => {
         let p=n.parent; while(p){ if(p.duplicateGroup) return false; p=p.parent; } return true;
       });
-      let maxRight = Math.max(padX, ...mainNodes.map(n => n._layout.x + cardW + 50));
-      const mainBottom = Math.max(padY + cardMaxH, ...mainNodes.map(n => n._layout.y + cardMaxH));
+      let maxRight = mainBounds.right + 50;
+      const mainBottom = mainBounds.bottom;
       const subplans = [];
       let subY = mainBottom + (statement.subplans.length ? 70 : 0);
       statement.subplans.forEach(sp => {
         const nodes = flatten([sp.root]);
         const zoneX = 24, contentTop = subY + 52;
-        let localLeafCenter = zoneX + 50 + cardMaxW / 2;
-        function placeSub(node, depth) {
-          node.children.forEach(c => placeSub(c, depth+1));
-          const kids=node.children;
-          const centerX = kids.length
-            ? ((kids[0]._subLayout.x + cardW / 2) + (kids[kids.length - 1]._subLayout.x + cardW / 2)) / 2
-            : localLeafCenter;
-          if(!kids.length) localLeafCenter += leafStep;
-          node._subLayout={x:centerX-cardW/2,y:contentTop+depth*levelStep};
-        }
-        placeSub(sp.root,0);
-        const bottom=Math.max(...nodes.map(n=>n._subLayout.y+cardMaxH))+28;
-        const right=Math.max(...nodes.map(n=>n._subLayout.x+cardW))+50;
+        const bounds=assignPositions(tidySubtree(sp.root,node=>node.children),'_subLayout',zoneX+50,contentTop);
+        const bottom=bounds.bottom+28;
+        const right=bounds.right+50;
         subplans.push({sp,nodes,x:zoneX,y:subY,width:right-zoneX,height:bottom-subY,bottom});
         maxRight=Math.max(maxRight,right);
         subY=bottom+30;
