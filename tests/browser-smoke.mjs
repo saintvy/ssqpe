@@ -129,6 +129,14 @@ try {
       if (!snapshot.tabs || Boolean(snapshot.tree) !== Boolean(snapshot.cards)) failures.push(`${plan}: inconsistent UI (${JSON.stringify(snapshot)})`);
       if (snapshot.overlaps) failures.push(`${plan}: ${snapshot.overlaps} graph-card overlaps`);
       if (snapshot.missingFlagTips) failures.push(`${plan}: flags without tooltips`);
+      if (process.env.SMOKE_BENCHMARK && basename(plan).toLowerCase().includes(process.env.SMOKE_BENCHMARK.toLowerCase())) {
+        const panBenchmark = await evaluate(`new Promise(resolve => {
+          const canvas=document.getElementById('canvasWrap'),samples=[];let previous=performance.now(),frame=0;
+          const maxLeft=Math.max(0,canvas.scrollWidth-canvas.clientWidth),maxTop=Math.max(0,canvas.scrollHeight-canvas.clientHeight);
+          const tick=now=>{samples.push(now-previous);previous=now;const phase=frame/119;canvas.scrollLeft=maxLeft*Math.abs(Math.sin(phase*Math.PI*2));canvas.scrollTop=maxTop*Math.abs(Math.sin(phase*Math.PI*3));frame++;if(frame<120)requestAnimationFrame(tick);else{const sorted=samples.slice(1).sort((a,b)=>a-b),pct=p=>sorted[Math.min(sorted.length-1,Math.floor(sorted.length*p))];resolve({cards:document.querySelectorAll('.node-card').length,width:canvas.scrollWidth,height:canvas.scrollHeight,p50:pct(.5),p95:pct(.95),max:sorted.at(-1),over20:sorted.filter(x=>x>20).length});}};requestAnimationFrame(tick);
+        })`);
+        console.log(`PAN ${basename(plan)} ${JSON.stringify(panBenchmark)}`);
+      }
       if (basename(plan).toLowerCase() === 'batch_hash_table_build.sqlplan') {
         const timeState = await evaluate(`(() => {document.querySelector('[data-metric="time"]').click();return {notice:document.getElementById('metricNotice').textContent,values:Array.from(document.querySelectorAll('.tree-value')).map(x=>x.textContent)}})()`);
         if (!timeState.notice || timeState.values.some(value => value.includes('0 ms') || value.includes('0 мс'))) failures.push(`${plan}: missing elapsed time is shown as zero`);

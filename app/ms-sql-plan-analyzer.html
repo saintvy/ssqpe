@@ -113,13 +113,15 @@
     .query-button { max-width: min(48vw, 560px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .canvas-wrap { overflow: auto; position: relative; cursor: grab; user-select: none; overscroll-behavior: contain; }
     .canvas-wrap.panning { cursor: grabbing; }
+    .canvas-wrap.panning .graph { pointer-events: none; }
     .graph { position: relative; min-width: 100%; min-height: 100%; transform-origin: 0 0; }
     .edges { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
     .edge { fill: none; stroke: #53627b; stroke-width: 1.5; }
     .edge.call { stroke: var(--accent-2); stroke-dasharray: 5 5; stroke-width: 1.8; }
     .edge-arrow { fill: var(--accent-2); }
-    .node-card { position: absolute; width: 220px; min-height: 106px; border: 1px solid #3a465b; border-radius: var(--radius); background: #1b212c; box-shadow: 0 4px 13px rgba(0,0,0,.24); cursor: pointer; overflow: visible; transition: border-color .13s, box-shadow .13s; }
-    .node-card:hover { border-color: #63738d; }
+    .node-card { position: absolute; width: 220px; min-height: 106px; border: 1px solid #3a465b; border-radius: var(--radius); background: #1b212c; box-shadow: 0 4px 13px rgba(0,0,0,.24); cursor: pointer; overflow: visible; content-visibility: auto; contain-intrinsic-size: 220px 106px; transition: border-color .13s, box-shadow .13s; }
+    .node-card:hover { content-visibility: visible; border-color: #63738d; }
+    .node-card:focus-within, .node-card.selected { content-visibility: visible; }
     .node-card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(85,182,255,.14), 0 5px 17px rgba(0,0,0,.3); z-index: 5; }
     .node-card.warning { border-top-color: var(--warning); }
     .node-card.call-node { border-color: #655db0; background: #201f35; }
@@ -1134,7 +1136,7 @@
     }
 
     function updateZoom() {
-      els.graph.style.transform = `scale(${state.zoom})`;
+      els.graph.style.transform = Math.abs(state.zoom - 1) < .001 ? '' : `scale(${state.zoom})`;
       els.zoomLabel.textContent = `${Math.round(state.zoom * 100)}%`;
     }
 
@@ -1179,10 +1181,16 @@
     els.languageSelect.onchange=()=>{locale=els.languageSelect.value;localStorage.setItem('sql-plan-language',locale);applyI18n();};
     window.addEventListener('keydown',e=>{if(e.key==='Escape'){els.queryModal.classList.remove('open');els.detailsDrawer.classList.remove('open');openHistory(false);}});
 
-    let graphPan = null;
-    els.canvasWrap.addEventListener('pointerdown',e=>{if(e.button!==0)return;graphPan={pointerId:e.pointerId,x:e.clientX,y:e.clientY,left:els.canvasWrap.scrollLeft,top:els.canvasWrap.scrollTop,captured:false};state.dragMoved=false;});
-    els.canvasWrap.addEventListener('pointermove',e=>{if(!graphPan)return;const dx=e.clientX-graphPan.x,dy=e.clientY-graphPan.y;if(!graphPan.captured&&Math.abs(dx)+Math.abs(dy)<=6)return;if(!graphPan.captured){graphPan.captured=true;els.canvasWrap.setPointerCapture(graphPan.pointerId);els.canvasWrap.classList.add('panning');}state.dragMoved=true;els.canvasWrap.scrollLeft=graphPan.left-dx;els.canvasWrap.scrollTop=graphPan.top-dy;});
-    const endGraphPan=()=>{graphPan=null;els.canvasWrap.classList.remove('panning');};
+    let graphPan = null, graphPanFrame = 0;
+    const applyGraphPan = () => {
+      graphPanFrame = 0;
+      if (!graphPan?.captured) return;
+      els.canvasWrap.scrollLeft = graphPan.left - (graphPan.latestX - graphPan.x);
+      els.canvasWrap.scrollTop = graphPan.top - (graphPan.latestY - graphPan.y);
+    };
+    els.canvasWrap.addEventListener('pointerdown',e=>{if(e.button!==0)return;graphPan={pointerId:e.pointerId,x:e.clientX,y:e.clientY,latestX:e.clientX,latestY:e.clientY,left:els.canvasWrap.scrollLeft,top:els.canvasWrap.scrollTop,captured:false};state.dragMoved=false;});
+    els.canvasWrap.addEventListener('pointermove',e=>{if(!graphPan)return;graphPan.latestX=e.clientX;graphPan.latestY=e.clientY;const dx=e.clientX-graphPan.x,dy=e.clientY-graphPan.y;if(!graphPan.captured&&Math.abs(dx)+Math.abs(dy)<=6)return;if(!graphPan.captured){graphPan.captured=true;els.canvasWrap.setPointerCapture(graphPan.pointerId);els.canvasWrap.classList.add('panning');}state.dragMoved=true;if(!graphPanFrame)graphPanFrame=requestAnimationFrame(applyGraphPan);});
+    const endGraphPan=()=>{if(graphPanFrame){cancelAnimationFrame(graphPanFrame);graphPanFrame=0;applyGraphPan();}graphPan=null;els.canvasWrap.classList.remove('panning');};
     els.canvasWrap.addEventListener('pointerup',endGraphPan);els.canvasWrap.addEventListener('pointercancel',endGraphPan);
     els.canvasWrap.addEventListener('wheel',e=>{e.preventDefault();const scale=e.deltaMode===1?33:e.deltaMode===2?300:1;const deltaX=e.deltaX*scale,deltaY=e.deltaY*scale;if(!e.ctrlKey){els.canvasWrap.scrollBy({left:deltaX,top:deltaY});return;}const old=state.zoom;const factor=Math.exp(-deltaY*.0015);const next=Math.max(.35,Math.min(2.5,old*factor));if(Math.abs(next-old)<.001)return;const rect=els.canvasWrap.getBoundingClientRect();const px=e.clientX-rect.left,py=e.clientY-rect.top;const contentX=(els.canvasWrap.scrollLeft+px)/old,contentY=(els.canvasWrap.scrollTop+py)/old;state.zoom=next;updateZoom();requestAnimationFrame(()=>{els.canvasWrap.scrollLeft=contentX*next-px;els.canvasWrap.scrollTop=contentY*next-py;});},{passive:false});
 

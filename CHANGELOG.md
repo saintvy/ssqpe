@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Labeled and documented the derived exclusive elapsed-time approximation in operator details.
 - Wrapped each metric bar and numeric value in one opaque sticky column that masks scrolling operator names, and changed graph controls to wheel scrolling with Ctrl+wheel zooming.
 - Derived exclusive time now traverses untimed child operators to the nearest descendants with elapsed counters.
+- Improved large-graph panning by skipping off-screen card rendering, avoiding an unnecessary 100% scale layer, coalescing drag updates to animation frames, and suspending graph hit-testing during a drag.
 - Refined selection clearing, details visibility, and horizontal list dragging without Ctrl.
 - Replaced emoji language flags with self-contained inline SVG icons.
 
