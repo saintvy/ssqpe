@@ -22,7 +22,9 @@ function filesUnder(dir) {
   });
 }
 
-const plans = filesUnder(join(root, 'Test data'));
+const allPlans = filesUnder(join(root, 'Test data'));
+const smokeSkip = Number(process.env.SMOKE_SKIP || 0);
+const plans = process.env.SMOKE_LIMIT ? allPlans.slice(smokeSkip, smokeSkip + Number(process.env.SMOKE_LIMIT)) : allPlans.slice(smokeSkip);
 const repeatedSubplan = `<?xml version="1.0"?>
 <ShowPlanXML xmlns="http://schemas.microsoft.com/sqlserver/2004/07/showplan" Version="1.0" Build="test"><BatchSequence><Batch><Statements>
 <StmtSimple StatementId="1" StatementType="SELECT" StatementText="synthetic repeated subtree"><QueryPlan>
@@ -38,7 +40,7 @@ const repeatedSubplan = `<?xml version="1.0"?>
 </NestedLoops></RelOp>
 </Concatenation></RelOp></QueryPlan></StmtSimple></Statements></Batch></BatchSequence></ShowPlanXML>`;
 const profile = mkdtempSync(join(tmpdir(), 'sql-plan-smoke-'));
-const port = 9338;
+const port = 9300 + Math.floor(Math.random() * 500);
 const browser = spawn(browserPath, [
   '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
   `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, pathToFileURL(html).href
@@ -95,25 +97,58 @@ try {
   const failures = [];
   let reusableZones = 0;
   for (const plan of plans) {
+    if (process.env.SMOKE_PROGRESS) console.log(`Testing ${basename(plan)}`);
     await evaluate("document.getElementById('toast').textContent = ''");
     await send('DOM.setFileInputFiles', { nodeId: input.nodeId, files: [plan] });
     try {
       await retry(async () => {
         const snapshot = await evaluate("({title:document.getElementById('planTitle').textContent,visible:document.getElementById('viewer').classList.contains('visible'),toast:document.getElementById('toast').textContent})");
         const expected = basename(plan).replace(/\.(sqlplan|sqplan)$/i, '');
-        if (!snapshot.visible || snapshot.title !== expected || !snapshot.toast.startsWith('План открыт')) throw new Error(snapshot.toast || 'Plan did not render');
+        if (!snapshot.visible || snapshot.title !== expected || !snapshot.toast) throw new Error(snapshot.toast || 'Plan did not render');
       }, 120);
-      const snapshot = await evaluate("({tabs:document.querySelectorAll('.statement-tab').length,tree:document.querySelectorAll('.tree-row').length,cards:document.querySelectorAll('.node-card').length,zones:document.querySelectorAll('.subplan-zone').length,meta:document.getElementById('planMeta').textContent})");
+      const snapshot = await evaluate(`(() => {
+        const cards=Array.from(document.querySelectorAll('.node-card'));
+        const boxes=cards.map(card=>({id:card.dataset.id,left:card.offsetLeft,top:card.offsetTop,right:card.offsetLeft+card.offsetWidth,bottom:card.offsetTop+card.offsetHeight}));
+        let overlaps=0;
+        for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){const a=boxes[i],b=boxes[j];if(Math.min(a.right,b.right)-Math.max(a.left,b.left)>1&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>1)overlaps++;}
+        return {tabs:document.querySelectorAll('.statement-tab').length,tree:document.querySelectorAll('.tree-row').length,cards:cards.length,zones:document.querySelectorAll('.subplan-zone').length,overlaps,missingFlagTips:Array.from(document.querySelectorAll('.flag')).filter(x=>!x.title).length,meta:document.getElementById('planMeta').textContent};
+      })()`);
       reusableZones += snapshot.zones;
       if (!snapshot.tabs || Boolean(snapshot.tree) !== Boolean(snapshot.cards)) failures.push(`${plan}: inconsistent UI (${JSON.stringify(snapshot)})`);
+      if (snapshot.overlaps) failures.push(`${plan}: ${snapshot.overlaps} graph-card overlaps`);
+      if (snapshot.missingFlagTips) failures.push(`${plan}: flags without tooltips`);
+      if (basename(plan).toLowerCase() === 'batch_hash_table_build.sqlplan') {
+        const timeState = await evaluate(`(() => {document.querySelector('[data-metric="time"]').click();return {notice:document.getElementById('metricNotice').textContent,values:Array.from(document.querySelectorAll('.tree-value')).map(x=>x.textContent)}})()`);
+        if (!timeState.notice || timeState.values.some(value => value.includes('0 ms') || value.includes('0 мс'))) failures.push(`${plan}: missing elapsed time is shown as zero`);
+      }
     } catch (error) {
       failures.push(`${plan}: ${error.message}`);
     }
   }
-  await evaluate(`document.getElementById('pasteBox').value = ${JSON.stringify(repeatedSubplan)}; document.getElementById('parsePasteBtn').click()`);
+  const interaction = await evaluate(`(() => {
+    document.querySelector('.node-card').click();
+    const drawerOpened=document.getElementById('detailsDrawer').classList.contains('open');
+    const check=document.getElementById('hideDetailsCheck');check.checked=true;check.dispatchEvent(new Event('change',{bubbles:true}));
+    document.querySelector('.node-card').click();
+    const stayedClosed=!document.getElementById('detailsDrawer').classList.contains('open')&&document.getElementById('detailsHandle').classList.contains('visible');
+    document.getElementById('detailsHandle').click();
+    const unlocked=document.getElementById('detailsDrawer').classList.contains('open');
+    const language=document.getElementById('languageSelect');language.value='ru';language.dispatchEvent(new Event('change',{bubbles:true}));
+    const russian=document.getElementById('menuBtn').textContent;
+    language.value='en';language.dispatchEvent(new Event('change',{bubbles:true}));
+    const english=document.getElementById('menuBtn').textContent;
+    const canvas=document.getElementById('canvasWrap');const before=document.getElementById('zoomLabel').textContent;canvas.dispatchEvent(new WheelEvent('wheel',{ctrlKey:true,deltaY:-150,clientX:100,clientY:100,cancelable:true,bubbles:true}));const after=document.getElementById('zoomLabel').textContent;
+    document.getElementById('menuBtn').click();
+    return {drawerOpened,stayedClosed,unlocked,russian,english,before,after,homeVisible:!document.getElementById('homeSidebar').classList.contains('hidden'),viewerButtonsHidden:document.getElementById('menuBtn').classList.contains('hidden')&&document.getElementById('historyBtn').classList.contains('hidden'),languageSaved:localStorage.getItem('sql-plan-language')};
+  })()`);
+  if (!interaction.drawerOpened || !interaction.stayedClosed || !interaction.unlocked) failures.push(`Details locking failed: ${JSON.stringify(interaction)}`);
+  if (interaction.russian !== 'Возврат в меню' || interaction.english !== 'Back to menu' || interaction.languageSaved !== 'en') failures.push(`Language switching failed: ${JSON.stringify(interaction)}`);
+  if (interaction.before === interaction.after) failures.push(`Graph zoom failed: ${JSON.stringify(interaction)}`);
+  if (!interaction.homeVisible || !interaction.viewerButtonsHidden) failures.push(`Home screen state failed: ${JSON.stringify(interaction)}`);
+  await evaluate(`document.getElementById('planNameInput').value='Smoke custom name'; document.getElementById('pasteBox').value = ${JSON.stringify(repeatedSubplan)}; document.getElementById('parsePasteBtn').click()`);
   await retry(async () => {
-    const snapshot = await evaluate("({zones:document.querySelectorAll('.subplan-zone').length,calls:document.querySelectorAll('.edge.call').length})");
-    if (!snapshot.zones || snapshot.calls < 2) throw new Error('Reusable subplan was not separated or linked');
+    const snapshot = await evaluate("({title:document.getElementById('planTitle').textContent,zones:document.querySelectorAll('.subplan-zone').length,calls:document.querySelectorAll('.edge.call').length})");
+    if (snapshot.title!=='Smoke custom name'||!snapshot.zones || snapshot.calls < 2) throw new Error('Custom name or reusable subplan rendering failed');
     reusableZones += snapshot.zones;
   });
   socket.close();

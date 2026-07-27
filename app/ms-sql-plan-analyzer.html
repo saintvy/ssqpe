@@ -26,20 +26,25 @@
     * { box-sizing: border-box; }
     html, body { height: 100%; }
     body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; overflow: hidden; }
-    button, input, textarea { font: inherit; }
+    button, input, textarea, select { font: inherit; }
     button { color: var(--text); }
     .app { height: 100%; display: grid; grid-template-rows: 54px minmax(0, 1fr); }
     .topbar { display: flex; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid var(--border); background: #141923; min-width: 0; }
     .brand { display: flex; align-items: center; gap: 10px; font-weight: 720; letter-spacing: .1px; white-space: nowrap; }
     .logo { width: 27px; height: 27px; display: grid; place-items: center; border-radius: 8px; color: #08131b; background: linear-gradient(135deg, var(--accent), #5fe0bd); font-size: 14px; font-weight: 900; }
     .top-actions { display: flex; gap: 8px; margin-left: auto; }
+    .language-select { color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; padding: 6px 8px; cursor: pointer; }
     .btn { border: 1px solid var(--border); background: var(--surface-2); border-radius: 7px; padding: 7px 11px; cursor: pointer; transition: .15s; white-space: nowrap; }
     .btn:hover { border-color: #526079; background: var(--surface-3); }
     .btn.primary { color: #07131c; border-color: transparent; background: var(--accent); font-weight: 700; }
     .btn.danger { color: #ffb6bc; }
     .file-input { display: none; }
     .workspace { display: grid; grid-template-columns: var(--left-width) 6px minmax(0, 1fr); min-height: 0; }
-    .sidebar { min-width: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr); background: var(--surface); overflow: hidden; }
+    .sidebar { min-width: 0; background: var(--surface); overflow: hidden; }
+    .plan-sidebar { height: 100%; display: grid; grid-template-rows: auto auto minmax(0, 1fr); }
+    .home-sidebar { height: 100%; display: grid; grid-template-rows: auto minmax(0,1fr); }
+    .home-sidebar-head { display: flex; align-items: center; gap: 8px; padding: 13px 14px; border-bottom: 1px solid var(--border); }
+    .home-sidebar-head h2 { margin: 0; flex: 1; font-size: 15px; }
     .resizer { cursor: col-resize; background: transparent; border-left: 1px solid var(--border); border-right: 1px solid transparent; }
     .resizer:hover, .resizer.dragging { background: #263650; border-color: var(--accent); }
     .plan-head { padding: 13px 14px 11px; border-bottom: 1px solid var(--border); }
@@ -49,23 +54,33 @@
     .statement-tab { border: 1px solid var(--border); background: transparent; border-radius: 6px; padding: 5px 9px; cursor: pointer; color: var(--muted); white-space: nowrap; }
     .statement-tab.active { color: var(--text); border-color: var(--accent); background: #1b3145; }
     .tree-panel { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
-    .metric-switch { display: flex; align-items: center; gap: 6px; padding: 9px 10px; border-bottom: 1px solid var(--border); }
+    .metric-switch { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 9px 10px; border-bottom: 1px solid var(--border); }
     .metric-switch .label { color: var(--muted); margin-right: auto; }
+    .metric-notice { flex: 0 0 100%; color: var(--warning); font-size: 11px; min-height: 0; }
+    .metric-notice:empty { display: none; }
+    .rows-legend { display: flex; flex-wrap: wrap; gap: 9px; color: var(--muted); }
+    .metric-dot { display: inline-block; width: 8px; height: 8px; margin-right: 4px; border-radius: 50%; }
     .segmented { display: inline-flex; padding: 2px; gap: 2px; background: #10151e; border: 1px solid var(--border); border-radius: 7px; }
     .segmented button { border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 4px 8px; border-radius: 5px; }
     .segmented button.active { color: var(--text); background: var(--surface-3); }
-    .tree { overflow: auto; padding: 7px 0 24px; }
-    .tree-row { position: relative; min-width: 355px; height: 39px; display: grid; grid-template-columns: minmax(130px, 1fr) 118px 62px; align-items: center; gap: 7px; padding: 0 9px 0 calc(9px + var(--depth) * 15px); cursor: pointer; border-left: 2px solid transparent; }
+    .tree { overflow: auto; padding: 7px 0 24px; cursor: default; user-select: none; }
+    .tree.ctrl-panning { cursor: grabbing; }
+    .tree-row { position: relative; width: 100%; height: 39px; display: flex; align-items: center; gap: 7px; padding: 0 9px; cursor: pointer; border-left: 2px solid transparent; }
     .tree-row:hover { background: #202735; }
     .tree-row.selected { background: #233148; border-left-color: var(--accent); }
-    .tree-name { min-width: 0; }
-    .tree-op { display: block; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tree-object { display: block; color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tree-bar { height: 18px; position: relative; overflow: hidden; border-radius: 4px; background: #10151e; box-shadow: inset 0 0 0 1px #2b3546; }
+    .tree-name { min-width: 0; flex: 1 1 auto; overflow: hidden; }
+    .tree-op { display: block; padding-left: min(calc(var(--depth) * 15px), 105px); font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tree-object { display: block; padding-left: min(calc(var(--depth) * 15px), 105px); color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tree-bar { flex: 0 0 118px; width: 118px; height: 18px; position: relative; overflow: hidden; border-radius: 4px; background: #10151e; box-shadow: inset 0 0 0 1px #2b3546; }
     .tree-bar .subtree, .tree-bar .self { position: absolute; left: 0; top: 0; bottom: 0; min-width: 0; }
     .tree-bar .subtree { opacity: .27; }
     .tree-bar .self { opacity: .92; }
-    .tree-value { text-align: right; color: #c4cbd8; font-variant-numeric: tabular-nums; font-size: 11px; }
+    .tree-bar .estimate, .tree-bar .actual { position: absolute; left: 0; top: 0; bottom: 0; }
+    .tree-bar .estimate { background: #7d8798; opacity: .35; }
+    .tree-bar .actual.under { background: #ff6574; }
+    .tree-bar .actual.over { background: #5c9fff; }
+    .tree-bar .actual.close { background: #4fd0a4; }
+    .tree-value { flex: 0 0 72px; width: 72px; text-align: right; color: #c4cbd8; font-variant-numeric: tabular-nums; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .call-mark { color: var(--accent-2); margin-right: 4px; }
     .main { min-width: 0; min-height: 0; position: relative; overflow: hidden; background: radial-gradient(circle at 10% 0%, #192233 0, transparent 38%), var(--bg); }
     .empty { height: 100%; display: grid; place-items: center; padding: 30px; }
@@ -76,18 +91,21 @@
     .drop-card p { margin: 0 auto 18px; color: var(--muted); max-width: 500px; }
     .paste-box { width: 100%; height: 104px; resize: vertical; color: var(--text); background: #0f141d; border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-top: 18px; outline: none; }
     .paste-box:focus { border-color: var(--accent); }
+    .plan-name-field { width: 100%; color: var(--text); background: #0f141d; border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px; margin: 0 0 12px; outline: none; }
+    .plan-name-field:focus { border-color: var(--accent); }
     .viewer { height: 100%; display: none; grid-template-rows: auto minmax(0, 1fr); }
     .viewer.visible { display: grid; }
     .viewer-toolbar { min-height: 45px; display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-bottom: 1px solid var(--border); background: rgba(20,25,35,.93); }
     .viewer-toolbar .spacer { flex: 1; }
     .query-button { max-width: min(48vw, 560px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .canvas-wrap { overflow: auto; position: relative; }
+    .canvas-wrap { overflow: auto; position: relative; cursor: grab; user-select: none; overscroll-behavior: contain; }
+    .canvas-wrap.panning { cursor: grabbing; }
     .graph { position: relative; min-width: 100%; min-height: 100%; transform-origin: 0 0; }
     .edges { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
     .edge { fill: none; stroke: #53627b; stroke-width: 1.5; }
     .edge.call { stroke: var(--accent-2); stroke-dasharray: 5 5; stroke-width: 1.8; }
     .edge-arrow { fill: var(--accent-2); }
-    .node-card { position: absolute; width: 220px; min-height: 84px; border: 1px solid #3a465b; border-radius: var(--radius); background: #1b212c; box-shadow: 0 4px 13px rgba(0,0,0,.24); cursor: pointer; overflow: hidden; transition: border-color .13s, box-shadow .13s; }
+    .node-card { position: absolute; width: 220px; min-height: 106px; border: 1px solid #3a465b; border-radius: var(--radius); background: #1b212c; box-shadow: 0 4px 13px rgba(0,0,0,.24); cursor: pointer; overflow: visible; transition: border-color .13s, box-shadow .13s; }
     .node-card:hover { border-color: #63738d; }
     .node-card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(85,182,255,.14), 0 5px 17px rgba(0,0,0,.3); z-index: 5; }
     .node-card.warning { border-top-color: var(--warning); }
@@ -108,7 +126,9 @@
     .expanded-item b { display: block; color: var(--muted); font-size: 9px; font-weight: 600; text-transform: uppercase; }
     .expanded-item span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .node-flags { display: flex; gap: 4px; position: absolute; right: 7px; top: 31px; }
-    .flag { display: inline-grid; place-items: center; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 4px; background: #30394a; color: #d4dbea; font-size: 9px; font-weight: 800; }
+    .flag { position: relative; display: inline-grid; place-items: center; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 4px; background: #30394a; color: #d4dbea; font-size: 9px; font-weight: 800; }
+    .flag::after { content: attr(data-tip); position: absolute; right: 0; bottom: calc(100% + 6px); width: max-content; max-width: 220px; padding: 5px 7px; border: 1px solid #516079; border-radius: 5px; background: #111722; color: var(--text); font-size: 11px; font-weight: 500; line-height: 1.3; white-space: normal; opacity: 0; transform: translateY(3px); pointer-events: none; transition: .12s; box-shadow: 0 5px 14px rgba(0,0,0,.35); z-index: 20; }
+    .flag:hover::after, .flag:focus-visible::after { opacity: 1; transform: translateY(0); }
     .flag.warn { background: #5d4b1e; color: var(--warning); }
     .flag.parallel { background: #243f62; color: #8bc8ff; }
     .flag.batch { background: #244b42; color: #72dbbd; }
@@ -118,10 +138,13 @@
     .details-drawer.open { transform: translateX(0); }
     .drawer-head { display: flex; gap: 10px; align-items: flex-start; padding: 14px; border-bottom: 1px solid var(--border); }
     .drawer-head-text { min-width: 0; flex: 1; }
+    .drawer-lock { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 11px; white-space: nowrap; cursor: pointer; }
     .drawer-title { font-size: 16px; font-weight: 750; }
     .drawer-subtitle { color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
     .icon-btn { border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 4px 7px; font-size: 18px; }
     .drawer-body { overflow: auto; padding: 12px 14px 30px; }
+    .details-handle { display: none; position: absolute; right: 0; top: 105px; z-index: 31; border: 1px solid var(--accent); border-right: 0; border-radius: 7px 0 0 7px; background: #20334a; color: #bfe4ff; padding: 11px 6px; cursor: pointer; writing-mode: vertical-rl; }
+    .details-handle.visible { display: block; }
     .detail-section { margin-bottom: 16px; }
     .detail-section h3 { margin: 0 0 7px; color: #c8d1df; font-size: 11px; text-transform: uppercase; letter-spacing: .7px; }
     .kv { display: grid; grid-template-columns: minmax(120px, 44%) minmax(0, 1fr); border-top: 1px solid #2b3444; }
@@ -152,14 +175,13 @@
     .toast { position: fixed; left: 50%; bottom: 22px; z-index: 100; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; padding: 9px 13px; border-radius: 7px; background: #273246; border: 1px solid #44516a; box-shadow: 0 6px 20px rgba(0,0,0,.35); transition: .18s; }
     .toast.show { transform: translate(-50%,0); opacity: 1; }
     .toast.error { border-color: #8d3d48; color: #ffb9c0; }
-    .legend { display: flex; gap: 9px; align-items: center; color: var(--muted); font-size: 11px; }
-    .legend-swatch { display: inline-block; width: 14px; height: 7px; border-radius: 2px; margin-right: 4px; vertical-align: 1px; }
+    .zoom-label { min-width: 45px; text-align: center; color: var(--muted); font-variant-numeric: tabular-nums; }
     .hidden { display: none !important; }
     @media (max-width: 850px) {
       :root { --left-width: 310px; }
       .brand span:last-child { display: none; }
-      .tree-row { grid-template-columns: minmax(115px, 1fr) 88px 52px; }
-      .legend { display: none; }
+      .tree-bar { flex-basis: 88px; width: 88px; }
+      .tree-value { flex-basis: 58px; width: 58px; }
     }
   </style>
 </head>
@@ -168,56 +190,67 @@
     <header class="topbar">
       <div class="brand"><span class="logo">QP</span><span>SQL Server Plan Explorer</span></div>
       <div class="top-actions">
-        <button class="btn" id="newPlanBtn">Открыть план</button>
-        <button class="btn" id="historyBtn">История <span id="historyCount"></span></button>
+        <button class="btn hidden" id="menuBtn" data-i18n="backToMenu"></button>
+        <button class="btn hidden" id="historyBtn"><span data-i18n="history"></span> <span id="historyCount"></span></button>
+        <select class="language-select" id="languageSelect" data-i18n-title="language"></select>
         <input class="file-input" id="fileInput" type="file" accept=".sqlplan,.xml,.sqplan,text/xml,application/xml">
       </div>
     </header>
 
     <div class="workspace">
       <aside class="sidebar">
-        <div class="plan-head">
-          <div class="plan-title" id="planTitle">План не загружен</div>
-          <div class="plan-meta" id="planMeta">Откройте XML-план из SSMS</div>
+        <div class="home-sidebar" id="homeSidebar">
+          <div class="home-sidebar-head"><h2 data-i18n="savedPlans"></h2><button class="btn danger" id="homeClearHistoryBtn" data-i18n="clear"></button></div>
+          <div class="history-list" id="homeHistoryList"></div>
         </div>
-        <div class="statement-tabs" id="statementTabs"></div>
-        <div class="tree-panel">
-          <div class="metric-switch">
-            <span class="label">Нагрузка</span>
-            <div class="segmented" id="metricSwitch">
-              <button data-metric="time" class="active">Время</button>
-              <button data-metric="cost">Стоимость</button>
-            </div>
+        <div class="plan-sidebar hidden" id="planSidebar">
+          <div class="plan-head">
+            <div class="plan-title" id="planTitle"></div>
+            <div class="plan-meta" id="planMeta"></div>
           </div>
-          <div class="tree" id="tree"></div>
+          <div class="statement-tabs" id="statementTabs"></div>
+          <div class="tree-panel">
+            <div class="metric-switch">
+              <span class="label" data-i18n="metric"></span>
+              <div class="segmented" id="metricSwitch">
+                <button data-metric="time" class="active" data-i18n="time"></button>
+                <button data-metric="cost" data-i18n="cost"></button>
+                <button data-metric="rows" data-i18n="rows"></button>
+              </div>
+              <div class="metric-notice" id="metricNotice"></div>
+            </div>
+            <div class="tree" id="tree"></div>
+          </div>
         </div>
       </aside>
-      <div class="resizer" id="resizer" title="Изменить ширину"></div>
+      <div class="resizer" id="resizer" data-i18n-title="resizeSidebar"></div>
       <main class="main" id="main">
         <section class="empty" id="emptyState">
           <div class="drop-card" id="dropCard">
             <div class="drop-icon">⇩</div>
-            <h1>Откройте план выполнения SQL Server</h1>
-            <p>Перетащите сюда файл <b>.sqlplan</b> из SSMS, выберите его с диска или вставьте ShowPlan XML. Данные не покидают браузер.</p>
-            <button class="btn primary" id="chooseBtn">Выбрать файл</button>
-            <textarea class="paste-box" id="pasteBox" spellcheck="false" placeholder="Вставьте XML, начинающийся с &lt;ShowPlanXML …&gt;"></textarea>
-            <button class="btn" id="parsePasteBtn">Разобрать XML</button>
+            <h1 data-i18n="openExecutionPlan"></h1>
+            <p data-i18n-html="dropDescription"></p>
+            <input class="plan-name-field" id="planNameInput" data-i18n-placeholder="planNamePlaceholder">
+            <button class="btn primary" id="chooseBtn" data-i18n="chooseFile"></button>
+            <textarea class="paste-box" id="pasteBox" spellcheck="false" data-i18n-placeholder="pastePlaceholder"></textarea>
+            <button class="btn" id="parsePasteBtn" data-i18n="parseXml"></button>
           </div>
         </section>
 
         <section class="viewer" id="viewer">
           <div class="viewer-toolbar">
-            <button class="btn query-button" id="queryBtn" title="Показать текст запроса">Текст запроса</button>
-            <div class="legend"><span><i class="legend-swatch" style="background:var(--time);opacity:.28"></i>поддерево</span><span><i class="legend-swatch" style="background:var(--time)"></i>текущий оператор</span></div>
+            <button class="btn query-button" id="queryBtn"></button>
             <span class="spacer"></span>
-            <button class="btn" id="fitBtn">В начало</button>
-            <button class="btn" id="detailsBtn">Детали</button>
+            <span class="zoom-label" id="zoomLabel">100%</span>
+            <button class="btn" id="fitBtn" data-i18n="resetView"></button>
+            <button class="btn" id="detailsBtn" data-i18n="details"></button>
           </div>
           <div class="canvas-wrap" id="canvasWrap"><div class="graph" id="graph"></div></div>
           <aside class="details-drawer" id="detailsDrawer">
-            <div class="drawer-head"><div class="drawer-head-text"><div class="drawer-title" id="drawerTitle"></div><div class="drawer-subtitle" id="drawerSubtitle"></div></div><button class="icon-btn" id="closeDetails" aria-label="Закрыть">×</button></div>
+            <div class="drawer-head"><div class="drawer-head-text"><div class="drawer-title" id="drawerTitle"></div><div class="drawer-subtitle" id="drawerSubtitle"></div></div><label class="drawer-lock"><input type="checkbox" id="hideDetailsCheck"><span data-i18n="keepDetailsHidden"></span></label><button class="icon-btn" id="closeDetails" data-i18n-aria="close">×</button></div>
             <div class="drawer-body" id="drawerBody"></div>
           </aside>
+          <button class="details-handle" id="detailsHandle" data-i18n="showDetails"></button>
         </section>
       </main>
     </div>
@@ -225,20 +258,73 @@
 
   <div class="overlay" id="overlay"></div>
   <aside class="history-panel" id="historyPanel">
-    <div class="history-head"><h2>Сохранённые планы</h2><button class="btn danger" id="clearHistoryBtn">Очистить</button><button class="icon-btn" id="closeHistory">×</button></div>
+    <div class="history-head"><h2 data-i18n="savedPlans"></h2><button class="btn danger" id="clearHistoryBtn" data-i18n="clear"></button><button class="icon-btn" id="closeHistory" data-i18n-aria="close">×</button></div>
     <div class="history-list" id="historyList"></div>
   </aside>
-  <div class="modal" id="queryModal"><div class="modal-card"><div class="modal-head"><h2>Текст запроса</h2><button class="icon-btn" id="closeQuery">×</button></div><pre class="query-text" id="queryText"></pre></div></div>
+  <div class="modal" id="queryModal"><div class="modal-card"><div class="modal-head"><h2 data-i18n="queryText"></h2><button class="icon-btn" id="closeQuery" data-i18n-aria="close">×</button></div><pre class="query-text" id="queryText"></pre></div></div>
   <div class="toast" id="toast"></div>
 
   <script>
   (() => {
     'use strict';
 
+    const I18N = {
+      ru: {
+        languageName: '🇷🇺 Русский', backToMenu: 'Возврат в меню', history: 'История', language: 'Язык интерфейса', savedPlans: 'Сохранённые планы', clear: 'Очистить',
+        metric: 'Показатель', time: 'Время', cost: 'Стоимость', rows: 'Строки', resizeSidebar: 'Изменить ширину панели',
+        openExecutionPlan: 'Откройте план выполнения SQL Server', dropDescription: 'Перетащите сюда файл <b>.sqlplan</b> из SSMS, выберите его с диска или вставьте ShowPlan XML. Данные не покидают браузер.',
+        planNamePlaceholder: 'Имя плана для истории (необязательно)', chooseFile: 'Выбрать файл', pastePlaceholder: 'Вставьте XML, начинающийся с <ShowPlanXML …>', parseXml: 'Разобрать XML',
+        resetView: 'Сбросить вид', details: 'Детали', keepDetailsHidden: 'Скрыть детали', showDetails: 'Показать детали', close: 'Закрыть', queryText: 'Текст запроса', showQuery: 'Показать SQL-текст', queryUnavailable: 'SQL-текст отсутствует',
+        actualPlan: 'Фактический', estimatedPlan: 'Оценочный', statementsShort: 'запр.', nodesShort: 'узлов', query: 'Запрос', queryNumber: 'Запрос {number}',
+        noStatementGraph: 'В этом запросе нет графа операторов.', noGraphFromServer: 'Для этого запроса SQL Server не предоставил дерево операторов.', timeUnavailable: 'В XML отсутствует ActualElapsedms — фактическое время операторов неизвестно.',
+        subtree: 'Поддерево', currentNode: 'Текущий оператор', estimate: 'Оценка', actual: 'Факт', noActualRows: 'Фактическое количество строк отсутствует', underestimated: 'Недооценено: фактических строк больше оценки', overestimated: 'Переоценено: фактических строк меньше оценки', closeEstimate: 'Оценка близка к факту', underShort: 'недооценка', overShort: 'переоценка', closeShort: 'близко к факту',
+        clickNode: 'Нажмите, чтобы открыть характеристики', rowsEstimateActual: 'Строки: оценка / факт', timeCost: 'Время / стоимость', executions: 'Выполнения', outputColumns: 'Выходные столбцы',
+        flagWarning: 'Предупреждение оператора', flagParallel: 'Параллельное выполнение', flagBatch: 'Пакетный режим выполнения',
+        operator: 'Оператор', primaryMetrics: 'Основные показатели', estimatedRows: 'Оценка строк', actualRows: 'Фактические строки', actualTime: 'Фактическое время', subtreeCost: 'Стоимость поддерева', selfCost: 'Собственная стоимость', mode: 'Режим',
+        ioAndCache: 'Ввод-вывод и кеш', logicalReads: 'Логические чтения', physicalReads: 'Физические чтения', readAhead: 'Упреждающие чтения', lobLogicalReads: 'Логические чтения LOB', lobPhysicalReads: 'Физические чтения LOB', scans: 'Сканирования',
+        warnings: 'Предупреждения', object: 'Объект', operandsPredicates: 'Операнды и предикаты', definedValues: 'Определяемые значения', optimizerEstimates: 'Оценки оптимизатора', averageRowSize: 'Средний размер строки', estimatedRowsRead: 'Оценка прочитанных строк', tableCardinality: 'Кардинальность таблицы', showPlanAttributes: 'Атрибуты ShowPlan', threads: 'Потоки', thread: 'Поток', elapsed: 'Время',
+        reusableSubplan: 'Повторно используемый подплан {number}', calls: 'вызовов',
+        emptyHistory: 'История пока пуста', delete: 'Удалить', historyMeta: '{date} · {statements} запр. · {nodes} узлов',
+        xmlParseError: 'XML не удалось разобрать: {details}', expectedShowPlan: 'Ожидался XML-план SQL Server с корнем <ShowPlanXML>.', noStatements: 'В документе не найден ни один statement или QueryPlan.',
+        defaultPlan: 'План SQL Server', pastedPlan: 'Вставленный план', planOpened: 'План открыт: {nodes} операторов', planSaveFailed: 'План открыт, но сохранить историю не удалось', pasteFirst: 'Сначала вставьте ShowPlan XML', fileTooLarge: 'Файл больше 30 МБ; откройте более компактный план.', openFailed: 'Не удалось открыть план',
+        clearConfirm: 'Удалить все сохранённые планы? Это действие нельзя отменить.', historyCleared: 'История очищена без возможности восстановления',
+        minute: 'мин', second: 'с', millisecond: 'мс', gigabyte: 'ГБ', megabyte: 'МБ', kilobyte: 'КБ', missing: '—'
+      },
+      en: {
+        languageName: '🇬🇧 English', backToMenu: 'Back to menu', history: 'History', language: 'Interface language', savedPlans: 'Saved plans', clear: 'Clear',
+        metric: 'Metric', time: 'Time', cost: 'Cost', rows: 'Rows', resizeSidebar: 'Resize sidebar',
+        openExecutionPlan: 'Open a SQL Server execution plan', dropDescription: 'Drop an SSMS <b>.sqlplan</b> file here, choose one from disk, or paste ShowPlan XML. Your data never leaves the browser.',
+        planNamePlaceholder: 'Plan name for history (optional)', chooseFile: 'Choose file', pastePlaceholder: 'Paste XML starting with <ShowPlanXML …>', parseXml: 'Parse XML',
+        resetView: 'Reset view', details: 'Details', keepDetailsHidden: 'Keep details hidden', showDetails: 'Show details', close: 'Close', queryText: 'Query text', showQuery: 'Show SQL text', queryUnavailable: 'SQL text unavailable',
+        actualPlan: 'Actual', estimatedPlan: 'Estimated', statementsShort: 'queries', nodesShort: 'nodes', query: 'Query', queryNumber: 'Query {number}',
+        noStatementGraph: 'This query has no operator graph.', noGraphFromServer: 'SQL Server did not provide an operator tree for this query.', timeUnavailable: 'ActualElapsedms is absent from the XML — operator elapsed time is unknown.',
+        subtree: 'Subtree', currentNode: 'Current operator', estimate: 'Estimate', actual: 'Actual', noActualRows: 'Actual row count is unavailable', underestimated: 'Underestimated: actual rows exceed the estimate', overestimated: 'Overestimated: actual rows are below the estimate', closeEstimate: 'Estimate is close to actual', underShort: 'underestimated', overShort: 'overestimated', closeShort: 'close to actual',
+        clickNode: 'Click to open operator details', rowsEstimateActual: 'Rows: estimate / actual', timeCost: 'Time / cost', executions: 'Executions', outputColumns: 'Output columns',
+        flagWarning: 'Operator warning', flagParallel: 'Parallel execution', flagBatch: 'Batch execution mode',
+        operator: 'Operator', primaryMetrics: 'Primary metrics', estimatedRows: 'Estimated rows', actualRows: 'Actual rows', actualTime: 'Actual elapsed time', subtreeCost: 'Subtree cost', selfCost: 'Self cost', mode: 'Mode',
+        ioAndCache: 'I/O and cache', logicalReads: 'Logical reads', physicalReads: 'Physical reads', readAhead: 'Read-ahead reads', lobLogicalReads: 'LOB logical reads', lobPhysicalReads: 'LOB physical reads', scans: 'Scans',
+        warnings: 'Warnings', object: 'Object', operandsPredicates: 'Operands and predicates', definedValues: 'Defined values', optimizerEstimates: 'Optimizer estimates', averageRowSize: 'Average row size', estimatedRowsRead: 'Estimated rows read', tableCardinality: 'Table cardinality', showPlanAttributes: 'ShowPlan attributes', threads: 'Threads', thread: 'Thread', elapsed: 'Elapsed',
+        reusableSubplan: 'Reusable subplan {number}', calls: 'calls',
+        emptyHistory: 'History is empty', delete: 'Delete', historyMeta: '{date} · {statements} queries · {nodes} nodes',
+        xmlParseError: 'Could not parse XML: {details}', expectedShowPlan: 'Expected a SQL Server XML plan with a <ShowPlanXML> root.', noStatements: 'No statement or QueryPlan was found in the document.',
+        defaultPlan: 'SQL Server plan', pastedPlan: 'Pasted plan', planOpened: 'Plan opened: {nodes} operators', planSaveFailed: 'The plan opened, but history could not be saved', pasteFirst: 'Paste ShowPlan XML first', fileTooLarge: 'The file is larger than 30 MB; open a more compact plan.', openFailed: 'Could not open the plan',
+        clearConfirm: 'Delete every saved plan? This cannot be undone.', historyCleared: 'History was permanently cleared',
+        minute: 'min', second: 's', millisecond: 'ms', gigabyte: 'GB', megabyte: 'MB', kilobyte: 'KB', missing: '—'
+      }
+    };
+
+    let locale = localStorage.getItem('sql-plan-language') || (navigator.language?.toLowerCase().startsWith('ru') ? 'ru' : 'en');
+    if (!I18N[locale]) locale = 'en';
+    const t = (key, values = {}) => {
+      let text = I18N[locale][key] ?? I18N.en[key] ?? key;
+      Object.entries(values).forEach(([name, value]) => text = text.replaceAll(`{${name}}`, value));
+      return text;
+    };
+
     const $ = (s, root = document) => root.querySelector(s);
     const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
     const els = Object.fromEntries([
-      'fileInput','newPlanBtn','historyBtn','historyCount','chooseBtn','pasteBox','parsePasteBtn','dropCard','emptyState','viewer','planTitle','planMeta','statementTabs','metricSwitch','tree','main','canvasWrap','graph','queryBtn','fitBtn','detailsBtn','detailsDrawer','drawerTitle','drawerSubtitle','drawerBody','closeDetails','historyPanel','historyList','clearHistoryBtn','closeHistory','overlay','queryModal','queryText','closeQuery','toast','resizer'
+      'fileInput','menuBtn','historyBtn','historyCount','languageSelect','chooseBtn','planNameInput','pasteBox','parsePasteBtn','dropCard','emptyState','viewer','homeSidebar','homeHistoryList','homeClearHistoryBtn','planSidebar','planTitle','planMeta','statementTabs','metricSwitch','metricNotice','tree','main','canvasWrap','graph','queryBtn','fitBtn','zoomLabel','detailsBtn','detailsDrawer','detailsHandle','hideDetailsCheck','drawerTitle','drawerSubtitle','drawerBody','closeDetails','historyPanel','historyList','clearHistoryBtn','closeHistory','overlay','queryModal','queryText','closeQuery','toast','resizer'
     ].map(id => [id, document.getElementById(id)]));
 
     const state = {
@@ -249,8 +335,25 @@
       currentFile: '',
       currentXml: '',
       history: [],
-      layout: null
+      layout: null,
+      screen: 'home',
+      zoom: 1,
+      detailsLocked: false,
+      dragMoved: false
     };
+
+    function applyI18n() {
+      document.documentElement.lang = locale;
+      $$('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
+      $$('[data-i18n-html]').forEach(el => el.innerHTML = t(el.dataset.i18nHtml));
+      $$('[data-i18n-placeholder]').forEach(el => el.placeholder = t(el.dataset.i18nPlaceholder));
+      $$('[data-i18n-title]').forEach(el => el.title = t(el.dataset.i18nTitle));
+      $$('[data-i18n-aria]').forEach(el => el.setAttribute('aria-label', t(el.dataset.i18nAria)));
+      els.languageSelect.innerHTML = Object.keys(I18N).map(code => `<option value="${code}">${esc(I18N[code].languageName)}</option>`).join('');
+      els.languageSelect.value = locale;
+      if (state.plan) renderAll();
+      renderHistoryLists();
+    }
 
     const lname = el => el && (el.localName || el.nodeName.split(':').pop());
     const all = (root, name) => Array.from(root.getElementsByTagNameNS('*', name));
@@ -270,21 +373,21 @@
       if (Math.abs(n) >= 1e6) return (n / 1e6).toFixed(2).replace(/\.00$/, '') + 'M';
       if (Math.abs(n) >= 1e3) return (n / 1e3).toFixed(2).replace(/\.00$/, '') + 'K';
       if (Math.abs(n) < .001) return n.toExponential(2);
-      return n.toLocaleString('ru-RU', { maximumFractionDigits: 3 });
+      return n.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-GB', { maximumFractionDigits: 3 });
     };
     const formatMs = value => {
       if (value === null || value === undefined || !Number.isFinite(Number(value))) return '—';
       const n = Number(value);
-      if (n >= 60000) return (n / 60000).toFixed(2) + ' мин';
-      if (n >= 1000) return (n / 1000).toFixed(2) + ' с';
-      return formatNumber(n) + ' мс';
+      if (n >= 60000) return (n / 60000).toFixed(2) + ' ' + t('minute');
+      if (n >= 1000) return (n / 1000).toFixed(2) + ' ' + t('second');
+      return formatNumber(n) + ' ' + t('millisecond');
     };
     const formatBytes = kb => {
       const n = Number(kb);
       if (!Number.isFinite(n)) return '—';
-      if (n >= 1048576) return (n / 1048576).toFixed(2) + ' ГБ';
-      if (n >= 1024) return (n / 1024).toFixed(2) + ' МБ';
-      return formatNumber(n) + ' КБ';
+      if (n >= 1048576) return (n / 1048576).toFixed(2) + ' ' + t('gigabyte');
+      if (n >= 1024) return (n / 1024).toFixed(2) + ' ' + t('megabyte');
+      return formatNumber(n) + ' ' + t('kilobyte');
     };
 
     function directWithin(relop, tag) {
@@ -330,7 +433,13 @@
       const counters = directWithin(relop, 'RunTimeCountersPerThread');
       if (!counters.length) return null;
       const sumKeys = ['ActualRows','ActualRowsRead','ActualCPUms','ActualLogicalReads','ActualPhysicalReads','ActualReadAheads','ActualLobLogicalReads','ActualLobPhysicalReads','ActualLobReadAheads','ActualScans','ActualRebinds','ActualRewinds','ActualExecutions','Batches','ActualEndOfScans'];
-      const result = { threads: counters.length, threadRows: [] };
+      const result = {
+        threads: counters.length,
+        threadRows: [],
+        hasElapsed: counters.some(el => el.hasAttribute('ActualElapsedms')),
+        hasCPU: counters.some(el => el.hasAttribute('ActualCPUms')),
+        hasRows: counters.some(el => el.hasAttribute('ActualRows'))
+      };
       sumKeys.forEach(k => result[k] = counters.reduce((sum, el) => sum + num(attr(el, k)), 0));
       result.ActualElapsedms = counters.reduce((max, el) => Math.max(max, num(attr(el, 'ActualElapsedms'))), 0);
       result.ActualExecutionsMax = counters.reduce((max, el) => Math.max(max, num(attr(el, 'ActualExecutions'))), 0);
@@ -367,7 +476,7 @@
       const outputs = directWithin(relop, 'OutputList').flatMap(out => children(out, 'ColumnReference')).map(formatColumn).filter(Boolean);
       const defined = directWithin(relop, 'DefinedValue').flatMap(v => all(v, 'ColumnReference').filter(c => nearestAncestor(c, 'RelOp') === relop)).map(formatColumn).filter(Boolean);
       const object = directWithin(relop, 'Object')[0] || null;
-      const physical = attr(relop, 'PhysicalOp', attr(relop, 'LogicalOp', 'Operator'));
+      const physical = attr(relop, 'PhysicalOp', attr(relop, 'LogicalOp', 'RelOp'));
       const node = {
         id: path,
         nodeId: attr(relop, 'NodeId', path),
@@ -406,8 +515,8 @@
       node.children = directChildRelOps(relop).map((child, i) => parseNode(child, `${path}.${i}`, node));
       node.subtreeSize = 1 + node.children.reduce((s, c) => s + c.subtreeSize, 0);
       node.selfCost = Math.max(0, node.estimatedCost - node.children.reduce((s, c) => s + c.estimatedCost, 0));
-      node.elapsed = runtime ? runtime.ActualElapsedms : 0;
-      node.selfTime = Math.max(0, node.elapsed - node.children.reduce((m, c) => Math.max(m, c.elapsed), 0));
+      node.elapsed = runtime?.hasElapsed ? runtime.ActualElapsedms : null;
+      node.selfTime = node.elapsed === null ? null : Math.max(0, node.elapsed - node.children.reduce((m, c) => Math.max(m, c.elapsed || 0), 0));
       return node;
     }
 
@@ -444,7 +553,7 @@
           return true;
         });
         if (usable.length < 2) return;
-        const item = { id: `sp-${statement.subplans.length + 1}`, name: `Повторно используемый подплан ${statement.subplans.length + 1}`, root: usable[0], calls: usable };
+        const item = { id: `sp-${statement.subplans.length + 1}`, number: statement.subplans.length + 1, root: usable[0], calls: usable };
         statement.subplans.push(item);
         usable.forEach(n => { n.duplicateGroup = item; claimed.add(n.id); });
       });
@@ -457,7 +566,7 @@
       const roots = topRelOps.map((r, i) => parseNode(r, `s${index}.r${i}`));
       const statement = {
         index,
-        type: stmt ? attr(stmt, 'StatementType', lname(stmt).replace(/^Stmt/, '')) : 'Query',
+        type: stmt ? attr(stmt, 'StatementType', lname(stmt).replace(/^Stmt/, '')) : '',
         text: stmt ? attr(stmt, 'StatementText') : '',
         id: stmt ? attr(stmt, 'StatementId', String(index + 1)) : String(index + 1),
         subtreeCost: stmt ? num(attr(stmt, 'StatementSubTreeCost')) : (roots[0]?.estimatedCost || 0),
@@ -482,12 +591,12 @@
       }));
     }
 
-    function parseShowPlan(xmlText, fileName = 'План SQL Server') {
+    function parseShowPlan(xmlText, fileName = t('defaultPlan')) {
       const xml = new DOMParser().parseFromString(xmlText, 'application/xml');
       const error = all(xml, 'parsererror')[0];
-      if (error) throw new Error('XML не удалось разобрать: ' + shortText(error.textContent, 180));
+      if (error) throw new Error(t('xmlParseError', { details: shortText(error.textContent, 180) }));
       const root = xml.documentElement;
-      if (!root || lname(root) !== 'ShowPlanXML') throw new Error('Ожидался XML-план SQL Server с корнем <ShowPlanXML>.');
+      if (!root || lname(root) !== 'ShowPlanXML') throw new Error(t('expectedShowPlan'));
       const queryPlans = all(xml, 'QueryPlan').filter(q => !nearestAncestor(q, 'QueryPlan'));
       const statementEls = Array.from(xml.getElementsByTagNameNS('*','*')).filter(el => lname(el).startsWith('Stmt'));
       const statements = [];
@@ -500,7 +609,7 @@
         }
       });
       queryPlans.filter(q => !nearestStatement(q)).forEach(q => statements.push(statementForPlan(q, statements.length)));
-      if (!statements.length) throw new Error('В документе не найден ни один statement или QueryPlan.');
+      if (!statements.length) throw new Error(t('noStatements'));
       const plan = {
         name: fileName.replace(/\.(sqlplan|sqplan|xml)$/i, ''),
         version: attr(root, 'Version'),
@@ -575,17 +684,26 @@
       state.currentXml = xml;
       state.statementIndex = 0;
       state.selectedId = parsed.statements[0].roots[0]?.id || null;
+      state.zoom = 1;
+      state.screen = 'viewer';
       els.emptyState.classList.add('hidden');
       els.viewer.classList.add('visible');
+      els.homeSidebar.classList.add('hidden');
+      els.planSidebar.classList.remove('hidden');
+      els.menuBtn.classList.remove('hidden');
+      els.historyBtn.classList.remove('hidden');
+      els.detailsHandle.classList.toggle('visible', state.detailsLocked);
+      if (state.detailsLocked) els.detailsDrawer.classList.remove('open');
+      updateZoom();
       renderAll();
       if (save) {
         try {
           const id = await hashText(xml);
           await historyStore.save({ id, name: fileName, xml, openedAt: Date.now(), nodeCount: parsed.nodeCount, statements: parsed.statements.length, actual: parsed.actual });
           await refreshHistory();
-        } catch (err) { toast('План открыт, но сохранить историю не удалось', true); }
+        } catch (err) { toast(t('planSaveFailed'), true); }
       }
-      toast(`План открыт: ${parsed.nodeCount} операторов`);
+      toast(t('planOpened', { nodes: parsed.nodeCount }));
     }
 
     function currentStatement() { return state.plan?.statements[state.statementIndex] || null; }
@@ -604,13 +722,13 @@
     function renderHeader() {
       const p = state.plan;
       els.planTitle.textContent = p.name;
-      els.planMeta.textContent = `${p.actual ? 'Фактический' : 'Оценочный'} · ${p.statements.length} statement · ${p.nodeCount} ${plural(p.nodeCount,'узел','узла','узлов')}${p.build ? ' · build ' + p.build : ''}`;
+      els.planMeta.textContent = `${p.actual ? t('actualPlan') : t('estimatedPlan')} · ${p.statements.length} ${t('statementsShort')} · ${p.nodeCount} ${t('nodesShort')}${p.build ? ' · build ' + p.build : ''}`;
     }
 
-    function plural(n, one, few, many) { const x=Math.abs(n)%100, y=x%10; return x>10&&x<20?many:y>1&&y<5?few:y===1?one:many; }
-
     function renderTabs() {
-      els.statementTabs.innerHTML = state.plan.statements.map((s,i) => `<button class="statement-tab ${i===state.statementIndex?'active':''}" data-index="${i}" title="${esc(shortText(s.text,180))}">${esc(s.type || 'Statement')} ${s.id || i+1}</button>`).join('');
+      const statements = state.plan.statements;
+      els.statementTabs.classList.toggle('hidden', statements.length <= 1);
+      els.statementTabs.innerHTML = statements.map((s,i) => `<button class="statement-tab ${i===state.statementIndex?'active':''}" data-index="${i}" title="${esc(shortText(s.text,180))}">${esc(t('queryNumber',{number:i+1}))} · ${esc(s.type || t('query'))}</button>`).join('');
     }
 
     function metricValues(node) {
@@ -620,20 +738,42 @@
     function renderTree() {
       const s = currentStatement();
       if (!s || !s.roots.length) {
-        els.tree.innerHTML = '<div style="padding:20px;color:var(--muted)">В этом statement нет графа операторов.</div>';
+        els.tree.innerHTML = `<div style="padding:20px;color:var(--muted)">${esc(t('noStatementGraph'))}</div>`;
+        els.metricNotice.textContent = '';
         return;
       }
       const nodes = flatten(s.roots);
-      const maximum = Math.max(...s.roots.map(r => metricValues(r).subtree), ...nodes.map(n => metricValues(n).subtree), 0.0000001);
+      const timeMissing = state.metric === 'time' && !nodes.some(n => n.runtime?.hasElapsed);
+      if (timeMissing) els.metricNotice.textContent = t('timeUnavailable');
+      else if (state.metric === 'rows') els.metricNotice.innerHTML = `<span class="rows-legend"><span><i class="metric-dot" style="background:#ff6574"></i>${esc(t('underShort'))}</span><span><i class="metric-dot" style="background:#5c9fff"></i>${esc(t('overShort'))}</span><span><i class="metric-dot" style="background:#4fd0a4"></i>${esc(t('closeShort'))}</span></span>`;
+      else els.metricNotice.textContent = '';
+      const maximum = state.metric === 'rows'
+        ? Math.max(...nodes.flatMap(n => [n.estimatedRows, n.runtime?.hasRows ? n.runtime.ActualRows : 0]), 0.0000001)
+        : Math.max(...s.roots.map(r => metricValues(r).subtree || 0), ...nodes.map(n => metricValues(n).subtree || 0), 0.0000001);
       const color = state.metric === 'time' ? 'var(--time)' : 'var(--cost)';
       els.tree.innerHTML = nodes.map(n => {
+        if (state.metric === 'rows') {
+          const estimated = n.estimatedRows;
+          const hasActual = Boolean(n.runtime?.hasRows);
+          const actual = hasActual ? n.runtime.ActualRows : null;
+          const estimateWidth = Math.min(100, 100 * estimated / maximum);
+          const actualWidth = actual === null ? 0 : Math.min(100, 100 * actual / maximum);
+          const ratio = actual === null ? null : estimated === 0 ? (actual === 0 ? 1 : Infinity) : actual / estimated;
+          const accuracy = ratio === null ? '' : ratio > 1.1 ? 'under' : ratio < .9 ? 'over' : 'close';
+          const accuracyText = ratio === null ? t('noActualRows') : t(accuracy === 'under' ? 'underestimated' : accuracy === 'over' ? 'overestimated' : 'closeEstimate');
+          return `<div class="tree-row ${n.id===state.selectedId?'selected':''}" data-id="${esc(n.id)}" style="--depth:${n.depth}">
+            <div class="tree-name"><span class="tree-op">${n.duplicateGroup?'<span class="call-mark">↗</span>':''}${esc(n.physical)}</span><span class="tree-object">${esc(n.objectLabel || n.logical || '')}</span></div>
+            <div class="tree-bar" title="${esc(t('estimate'))}: ${esc(formatNumber(estimated))}; ${esc(t('actual'))}: ${actual===null?t('missing'):esc(formatNumber(actual))}. ${esc(accuracyText)}"><span class="estimate" style="width:${estimateWidth}%"></span>${actual===null?'':`<span class="actual ${accuracy}" style="width:${actualWidth}%"></span>`}</div>
+            <div class="tree-value" title="${esc(t('estimate'))} / ${esc(t('actual'))}">${formatNumber(estimated)} / ${actual===null?t('missing'):formatNumber(actual)}</div>
+          </div>`;
+        }
         const v = metricValues(n);
-        const subWidth = Math.min(100, 100 * v.subtree / maximum);
-        const selfWidth = Math.min(subWidth, 100 * v.self / maximum);
+        const subWidth = Math.min(100, 100 * (v.subtree || 0) / maximum);
+        const selfWidth = Math.min(subWidth, 100 * (v.self || 0) / maximum);
         const value = state.metric === 'time' ? formatMs(v.subtree) : formatNumber(v.subtree);
         return `<div class="tree-row ${n.id===state.selectedId?'selected':''}" data-id="${esc(n.id)}" style="--depth:${n.depth}">
           <div class="tree-name"><span class="tree-op">${n.duplicateGroup?'<span class="call-mark">↗</span>':''}${esc(n.physical)}</span><span class="tree-object">${esc(n.objectLabel || n.logical || '')}</span></div>
-          <div class="tree-bar" title="Поддерево: ${esc(value)}; текущий узел: ${esc(state.metric==='time'?formatMs(v.self):formatNumber(v.self))}"><span class="subtree" style="width:${subWidth}%;background:${color}"></span><span class="self" style="width:${selfWidth}%;background:${color}"></span></div>
+          <div class="tree-bar" title="${esc(t('subtree'))}: ${esc(value)}; ${esc(t('currentNode'))}: ${esc(state.metric==='time'?formatMs(v.self):formatNumber(v.self))}"><span class="subtree" style="width:${subWidth}%;background:${color}"></span><span class="self" style="width:${selfWidth}%;background:${color}"></span></div>
           <div class="tree-value">${esc(value)}</div>
         </div>`;
       }).join('');
@@ -641,14 +781,14 @@
     }
 
     function layoutGraph(statement) {
-      const cardW = 220, cardH = 84, gapX = 78, gapY = 24, pad = 24;
+      const cardW = 220, cardH = 106, slotH = 164, gapX = 78, gapY = 24, pad = 24;
       let nextY = pad;
       const visibleChildren = node => node.duplicateGroup ? [] : node.children;
       function place(node, depth) {
         const kids = visibleChildren(node);
         kids.forEach(k => place(k, depth + 1));
         const y = kids.length ? (kids[0]._layout.y + kids[kids.length-1]._layout.y) / 2 : nextY;
-        if (!kids.length) nextY += cardH + gapY;
+        if (!kids.length) nextY += slotH + gapY;
         node._layout = { x: pad + depth * (cardW + gapX), y };
       }
       statement.roots.forEach((root, i) => { place(root, 0); if (i < statement.roots.length-1) nextY += 36; });
@@ -656,7 +796,7 @@
         let p=n.parent; while(p){ if(p.duplicateGroup) return false; p=p.parent; } return true;
       });
       let maxX = Math.max(pad, ...mainNodes.map(n => n._layout.x + cardW));
-      let mainBottom = Math.max(nextY, ...mainNodes.map(n => n._layout.y + cardH));
+      let mainBottom = Math.max(nextY, ...mainNodes.map(n => n._layout.y + slotH));
       const subplans = [];
       let subY = mainBottom + (statement.subplans.length ? 70 : 0);
       statement.subplans.forEach(sp => {
@@ -667,11 +807,11 @@
           node.children.forEach(c => placeSub(c, depth+1));
           const kids=node.children;
           const y=kids.length?(kids[0]._subLayout.y+kids[kids.length-1]._subLayout.y)/2:localY;
-          if(!kids.length) localY += cardH+gapY;
+          if(!kids.length) localY += slotH+gapY;
           node._subLayout={x:pad+depth*(cardW+gapX),y};
         }
         placeSub(sp.root,0);
-        const bottom=Math.max(localY,...nodes.map(n=>n._subLayout.y+cardH))+18;
+        const bottom=Math.max(localY,...nodes.map(n=>n._subLayout.y+slotH))+18;
         const right=Math.max(...nodes.map(n=>n._subLayout.x+cardW))+18;
         subplans.push({sp,nodes,x:12,y:subY,width:right,height:bottom-subY,bottom});
         maxX=Math.max(maxX,right);
@@ -686,22 +826,27 @@
     }
 
     function nodeCard(n, pos, sub = false) {
-      const actualRows = n.runtime ? n.runtime.ActualRows : null;
+      const actualRows = n.runtime?.hasRows ? n.runtime.ActualRows : null;
       const subtitle = n.objectLabel || (n.expressions[0] ? shortText(n.expressions[0],70) : n.logical);
-      const flags = [n.warnings.length?'<span class="flag warn">!</span>':'',n.parallel?'<span class="flag parallel">∥</span>':'',(n.estimatedMode==='Batch'||n.runtime?.ActualExecutionMode==='Batch')?'<span class="flag batch">B</span>':''].join('');
+      const flags = [
+        n.warnings.length?`<span class="flag warn" tabindex="0" data-tip="${esc(t('flagWarning'))}" title="${esc(t('flagWarning'))}" aria-label="${esc(t('flagWarning'))}">!</span>`:'',
+        n.parallel?`<span class="flag parallel" tabindex="0" data-tip="${esc(t('flagParallel'))}" title="${esc(t('flagParallel'))}" aria-label="${esc(t('flagParallel'))}">∥</span>`:'',
+        (n.estimatedMode==='Batch'||n.runtime?.ActualExecutionMode==='Batch')?`<span class="flag batch" tabindex="0" data-tip="${esc(t('flagBatch'))}" title="${esc(t('flagBatch'))}" aria-label="${esc(t('flagBatch'))}">B</span>`:''
+      ].join('');
       const call = !sub && n.duplicateGroup;
-      return `<article class="node-card ${n.id===state.selectedId?'selected expanded':''} ${n.warnings.length?'warning':''} ${call?'call-node':''}" data-id="${esc(n.id)}" style="left:${pos.x}px;top:${pos.y}px" title="Кликните для основных характеристик">
-        <div class="node-top"><div class="node-title">${call?'↗ ':''}${esc(call ? n.duplicateGroup.name : n.physical)}</div><div class="node-id">#${esc(n.nodeId)}</div></div>
+      const subplanName = n.duplicateGroup ? t('reusableSubplan',{number:n.duplicateGroup.number}) : '';
+      return `<article class="node-card ${n.id===state.selectedId?'selected expanded':''} ${n.warnings.length?'warning':''} ${call?'call-node':''}" data-id="${esc(n.id)}" style="left:${pos.x}px;top:${pos.y}px" title="${esc(t('clickNode'))}">
+        <div class="node-top"><div class="node-title">${call?'↗ ':''}${esc(call ? subplanName : n.physical)}</div><div class="node-id">#${esc(n.nodeId)}</div></div>
         <div class="node-subtitle">${esc(call ? n.physical + (subtitle?' · '+subtitle:'') : subtitle || n.logical || '—')}</div><div class="node-flags">${flags}</div>
-        <div class="node-stats"><div class="stat"><div class="stat-label">Строки: оценка / факт</div><div class="stat-value">${formatNumber(n.estimatedRows)} / ${actualRows===null?'—':formatNumber(actualRows)}</div></div><div class="stat"><div class="stat-label">Время / стоимость</div><div class="stat-value">${n.runtime?formatMs(n.elapsed):'—'} / ${formatNumber(n.estimatedCost)}</div></div></div>
-        <div class="node-expanded"><div class="expanded-grid"><div class="expanded-item"><b>CPU</b><span>${n.runtime?formatMs(n.runtime.ActualCPUms):'—'}</span></div><div class="expanded-item"><b>Logical reads</b><span>${n.runtime?formatNumber(n.runtime.ActualLogicalReads):'—'}</span></div><div class="expanded-item"><b>Выполнения</b><span>${n.runtime?formatNumber(n.runtime.ActualExecutions):'—'}</span></div><div class="expanded-item"><b>Выходные столбцы</b><span>${formatNumber(n.outputs.length)}</span></div></div></div>
+        <div class="node-stats"><div class="stat"><div class="stat-label">${esc(t('rowsEstimateActual'))}</div><div class="stat-value">${formatNumber(n.estimatedRows)} / ${actualRows===null?t('missing'):formatNumber(actualRows)}</div></div><div class="stat"><div class="stat-label">${esc(t('timeCost'))}</div><div class="stat-value">${formatMs(n.elapsed)} / ${formatNumber(n.estimatedCost)}</div></div></div>
+        <div class="node-expanded"><div class="expanded-grid"><div class="expanded-item"><b>CPU</b><span>${n.runtime?.hasCPU?formatMs(n.runtime.ActualCPUms):t('missing')}</span></div><div class="expanded-item"><b>${esc(t('logicalReads'))}</b><span>${n.runtime?formatNumber(n.runtime.ActualLogicalReads):t('missing')}</span></div><div class="expanded-item"><b>${esc(t('executions'))}</b><span>${n.runtime?formatNumber(n.runtime.ActualExecutions):t('missing')}</span></div><div class="expanded-item"><b>${esc(t('outputColumns'))}</b><span>${formatNumber(n.outputs.length)}</span></div></div></div>
       </article>`;
     }
 
     function renderGraph() {
       const s = currentStatement();
       if (!s || !s.roots.length) {
-        els.graph.innerHTML = '<div style="padding:30px;color:var(--muted)">Для этого statement SQL Server не предоставил дерево операторов.</div>';
+        els.graph.innerHTML = `<div style="padding:30px;color:var(--muted)">${esc(t('noGraphFromServer'))}</div>`;
         els.graph.style.width='100%'; els.graph.style.height='100%'; return;
       }
       const layout = state.layout = layoutGraph(s);
@@ -716,15 +861,17 @@
           if(a) edges.push(`<path class="edge call" d="M ${a.x+layout.cardW/2} ${a.y+layout.cardH} C ${a.x+layout.cardW/2} ${a.y+layout.cardH+34}, ${b.x+layout.cardW/2} ${b.y-34}, ${b.x+layout.cardW/2} ${b.y}"/>`);
         });
       });
-      const zones=layout.subplans.map(z=>`<div class="subplan-zone" style="left:${z.x}px;top:${z.y}px;width:${z.width}px;height:${z.height}px"><div class="subplan-label">↗ ${esc(z.sp.name)} · ${z.sp.calls.length} вызова</div></div>`).join('');
+      const zones=layout.subplans.map(z=>`<div class="subplan-zone" style="left:${z.x}px;top:${z.y}px;width:${z.width}px;height:${z.height}px"><div class="subplan-label">↗ ${esc(t('reusableSubplan',{number:z.sp.number}))} · ${z.sp.calls.length} ${esc(t('calls'))}</div></div>`).join('');
       const mainCards=layout.mainNodes.map(n=>nodeCard(n,n._layout,false)).join('');
       const subCards=layout.subplans.flatMap(z=>z.nodes.map(n=>nodeCard(n,n._subLayout,true))).join('');
       els.graph.style.width=layout.width+'px'; els.graph.style.height=layout.height+'px';
       els.graph.innerHTML=`${zones}<svg class="edges" width="${layout.width}" height="${layout.height}" aria-hidden="true">${edges.join('')}</svg>${mainCards}${subCards}`;
       const selected=$(`.node-card[data-id="${CSS.escape(state.selectedId || '')}"]`,els.graph);
       if(selected) selected.classList.add('expanded');
-      els.queryBtn.textContent = shortText(s.text, 78) || `${s.type} ${s.id}`;
-      els.queryBtn.title = s.text || 'Текст запроса отсутствует';
+      const meaningfulQuery = Boolean(s.text && !/^Statement\d+$/i.test(s.text.trim()));
+      els.queryBtn.disabled = !meaningfulQuery;
+      els.queryBtn.textContent = meaningfulQuery ? t('showQuery') : t('queryUnavailable');
+      els.queryBtn.title = meaningfulQuery ? s.text : t('queryUnavailable');
     }
 
     function detailRows(entries, formatter = v => v) {
@@ -733,47 +880,57 @@
 
     function renderDetails(n) {
       els.drawerTitle.textContent = n.physical;
-      els.drawerSubtitle.textContent = `${n.logical || 'Оператор'} · NodeId ${n.nodeId}${n.objectLabel?' · '+n.objectLabel:''}`;
+      els.drawerSubtitle.textContent = `${n.logical || t('operator')} · NodeId ${n.nodeId}${n.objectLabel?' · '+n.objectLabel:''}`;
       const actual = n.runtime;
       const primary = [
-        ['Оценка строк', formatNumber(n.estimatedRows)], ['Фактические строки', actual ? formatNumber(actual.ActualRows) : '—'],
-        ['Фактическое время', actual ? formatMs(actual.ActualElapsedms) : '—'], ['CPU', actual ? formatMs(actual.ActualCPUms) : '—'],
-        ['Стоимость поддерева', formatNumber(n.estimatedCost)], ['Собственная стоимость', formatNumber(n.selfCost)],
-        ['Выполнения', actual ? formatNumber(actual.ActualExecutions) : '—'], ['Режим', actual?.ActualExecutionMode || n.estimatedMode || 'Row']
+        [t('estimatedRows'), formatNumber(n.estimatedRows)], [t('actualRows'), actual?.hasRows ? formatNumber(actual.ActualRows) : t('missing')],
+        [t('actualTime'), actual?.hasElapsed ? formatMs(actual.ActualElapsedms) : t('missing')], ['CPU', actual?.hasCPU ? formatMs(actual.ActualCPUms) : t('missing')],
+        [t('subtreeCost'), formatNumber(n.estimatedCost)], [t('selfCost'), formatNumber(n.selfCost)],
+        [t('executions'), actual ? formatNumber(actual.ActualExecutions) : t('missing')], [t('mode'), actual?.ActualExecutionMode || n.estimatedMode || 'Row']
       ];
       const io = actual ? [
-        ['Логические чтения',formatNumber(actual.ActualLogicalReads)],['Физические чтения',formatNumber(actual.ActualPhysicalReads)],['Read-ahead',formatNumber(actual.ActualReadAheads)],
-        ['LOB logical reads',formatNumber(actual.ActualLobLogicalReads)],['LOB physical reads',formatNumber(actual.ActualLobPhysicalReads)],['Сканирования',formatNumber(actual.ActualScans)]
+        [t('logicalReads'),formatNumber(actual.ActualLogicalReads)],[t('physicalReads'),formatNumber(actual.ActualPhysicalReads)],[t('readAhead'),formatNumber(actual.ActualReadAheads)],
+        [t('lobLogicalReads'),formatNumber(actual.ActualLobLogicalReads)],[t('lobPhysicalReads'),formatNumber(actual.ActualLobPhysicalReads)],[t('scans'),formatNumber(actual.ActualScans)]
       ] : [];
-      const estimates = [['Estimate CPU',formatNumber(n.estimateCPU)],['Estimate IO',formatNumber(n.estimateIO)],['Средний размер строки',formatNumber(n.avgRowSize)+' B'],['Оценка строк чтения',n.estimatedRowsRead===null?'—':formatNumber(n.estimatedRowsRead)],['Cardinality таблицы',n.tableCardinality===null?'—':formatNumber(n.tableCardinality)],['Rebinds / Rewinds',`${formatNumber(n.estimateRebinds)} / ${formatNumber(n.estimateRewinds)}`]];
+      const estimates = [['Estimate CPU',formatNumber(n.estimateCPU)],['Estimate IO',formatNumber(n.estimateIO)],[t('averageRowSize'),formatNumber(n.avgRowSize)+' B'],[t('estimatedRowsRead'),n.estimatedRowsRead===null?t('missing'):formatNumber(n.estimatedRowsRead)],[t('tableCardinality'),n.tableCardinality===null?t('missing'):formatNumber(n.tableCardinality)],['Rebinds / Rewinds',`${formatNumber(n.estimateRebinds)} / ${formatNumber(n.estimateRewinds)}`]];
       const objectRows = Object.entries(n.object);
       const attributeRows = Object.entries(n.attributes).filter(([k]) => !['NodeId','PhysicalOp','LogicalOp','EstimateRows','EstimatedTotalSubtreeCost','EstimateCPU','EstimateIO'].includes(k));
       els.drawerBody.innerHTML = `
-        <section class="detail-section"><h3>Основные показатели</h3>${detailRows(primary)}</section>
-        ${io.length?`<section class="detail-section"><h3>Ввод-вывод и кеш</h3>${detailRows(io)}</section>`:''}
-        ${n.warnings.length?`<section class="detail-section"><h3>Предупреждения</h3><div class="chip-list">${n.warnings.map(x=>`<span class="chip" style="border-color:#705e2b;color:#f4d77c">${esc(x)}</span>`).join('')}</div></section>`:''}
-        ${objectRows.length?`<section class="detail-section"><h3>Объект</h3>${detailRows(objectRows)}</section>`:''}
-        ${n.expressions.length?`<section class="detail-section"><h3>Операнды и предикаты</h3>${n.expressions.map(x=>`<div class="expression">${esc(x)}</div>`).join('')}</section>`:''}
-        ${n.outputs.length?`<section class="detail-section"><h3>Выходные столбцы (${n.outputs.length})</h3><div class="chip-list">${n.outputs.map(x=>`<span class="chip">${esc(x)}</span>`).join('')}</div></section>`:''}
-        ${n.defined.length?`<section class="detail-section"><h3>Определяемые значения</h3><div class="chip-list">${n.defined.map(x=>`<span class="chip">${esc(x)}</span>`).join('')}</div></section>`:''}
-        <section class="detail-section"><h3>Оценки оптимизатора</h3>${detailRows(estimates)}</section>
+        <section class="detail-section"><h3>${esc(t('primaryMetrics'))}</h3>${detailRows(primary)}</section>
+        ${io.length?`<section class="detail-section"><h3>${esc(t('ioAndCache'))}</h3>${detailRows(io)}</section>`:''}
+        ${n.warnings.length?`<section class="detail-section"><h3>${esc(t('warnings'))}</h3><div class="chip-list">${n.warnings.map(x=>`<span class="chip" style="border-color:#705e2b;color:#f4d77c">${esc(x)}</span>`).join('')}</div></section>`:''}
+        ${objectRows.length?`<section class="detail-section"><h3>${esc(t('object'))}</h3>${detailRows(objectRows)}</section>`:''}
+        ${n.expressions.length?`<section class="detail-section"><h3>${esc(t('operandsPredicates'))}</h3>${n.expressions.map(x=>`<div class="expression">${esc(x)}</div>`).join('')}</section>`:''}
+        ${n.outputs.length?`<section class="detail-section"><h3>${esc(t('outputColumns'))} (${n.outputs.length})</h3><div class="chip-list">${n.outputs.map(x=>`<span class="chip">${esc(x)}</span>`).join('')}</div></section>`:''}
+        ${n.defined.length?`<section class="detail-section"><h3>${esc(t('definedValues'))}</h3><div class="chip-list">${n.defined.map(x=>`<span class="chip">${esc(x)}</span>`).join('')}</div></section>`:''}
+        <section class="detail-section"><h3>${esc(t('optimizerEstimates'))}</h3>${detailRows(estimates)}</section>
         ${n.spills.length?`<section class="detail-section"><h3>Spill to tempdb</h3>${n.spills.map(x=>detailRows(Object.entries(x))).join('')}</section>`:''}
-        <section class="detail-section"><h3>Атрибуты ShowPlan</h3>${detailRows(attributeRows)}</section>
-        ${actual&&actual.threadRows.length>1?`<section class="detail-section"><h3>Потоки (${actual.threadRows.length})</h3>${actual.threadRows.map(t=>detailRows([['Thread',t.Thread],['Rows',t.ActualRows],['Elapsed',t.ActualElapsedms?formatMs(t.ActualElapsedms):'—'],['CPU',t.ActualCPUms?formatMs(t.ActualCPUms):'—'],['Logical reads',t.ActualLogicalReads||'—']])).join('')}</section>`:''}`;
+        <section class="detail-section"><h3>${esc(t('showPlanAttributes'))}</h3>${detailRows(attributeRows)}</section>
+        ${actual&&actual.threadRows.length>1?`<section class="detail-section"><h3>${esc(t('threads'))} (${actual.threadRows.length})</h3>${actual.threadRows.map(row=>detailRows([[t('thread'),row.Thread],[t('rows'),row.ActualRows],[t('elapsed'),row.ActualElapsedms?formatMs(row.ActualElapsedms):t('missing')],['CPU',row.ActualCPUms?formatMs(row.ActualCPUms):t('missing')],[t('logicalReads'),row.ActualLogicalReads||t('missing')]])).join('')}</section>`:''}`;
     }
 
-    function selectNode(id, openDrawer = false) {
+    function selectNode(id) {
       state.selectedId = id;
       renderTree(); renderGraph();
       const node=selectedNode();
       if(node) renderDetails(node);
-      if(openDrawer) els.detailsDrawer.classList.add('open');
+      if(!state.detailsLocked) els.detailsDrawer.classList.add('open');
+    }
+
+    function renderHistoryLists() {
+      if (!els.historyList || !els.homeHistoryList) return;
+      const html = state.history.length ? state.history.map(item => {
+        const date = new Date(item.openedAt).toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-GB');
+        return `<div class="history-item" data-id="${esc(item.id)}"><div><div class="history-name">${esc(item.name)}</div><div class="history-meta">${esc(t('historyMeta',{date,statements:item.statements||'?',nodes:item.nodeCount??'?'}))}</div></div><button class="history-delete" data-delete="${esc(item.id)}" title="${esc(t('delete'))}" aria-label="${esc(t('delete'))}">×</button></div>`;
+      }).join('') : `<div style="padding:22px;color:var(--muted);text-align:center">${esc(t('emptyHistory'))}</div>`;
+      els.historyList.innerHTML = html;
+      els.homeHistoryList.innerHTML = html;
+      els.historyCount.textContent = state.history.length ? `(${state.history.length})` : '';
     }
 
     async function refreshHistory() {
       state.history = await historyStore.list();
-      els.historyCount.textContent = state.history.length ? `(${state.history.length})` : '';
-      els.historyList.innerHTML = state.history.length ? state.history.map(item => `<div class="history-item" data-id="${esc(item.id)}"><div><div class="history-name">${esc(item.name)}</div><div class="history-meta">${new Date(item.openedAt).toLocaleString('ru-RU')} · ${item.statements || '?'} stmt · ${item.nodeCount ?? '?'} узлов</div></div><button class="history-delete" data-delete="${esc(item.id)}" title="Удалить">×</button></div>`).join('') : '<div style="padding:22px;color:var(--muted);text-align:center">История пока пуста</div>';
+      renderHistoryLists();
     }
 
     function openHistory(open) {
@@ -782,10 +939,20 @@
       if(open) refreshHistory();
     }
 
-    function openNewPlan() {
+    function showHome() {
+      state.screen = 'home';
       els.viewer.classList.remove('visible');
       els.emptyState.classList.remove('hidden');
+      els.planSidebar.classList.add('hidden');
+      els.homeSidebar.classList.remove('hidden');
+      els.menuBtn.classList.add('hidden');
+      els.historyBtn.classList.add('hidden');
+      els.detailsDrawer.classList.remove('open');
+      els.detailsHandle.classList.remove('visible');
+      openHistory(false);
       els.pasteBox.value='';
+      els.planNameInput.value='';
+      refreshHistory();
     }
 
     function toast(message,error=false) {
@@ -795,41 +962,85 @@
 
     async function readFile(file) {
       if(!file) return;
-      if(file.size > 30*1024*1024) { toast('Файл больше 30 МБ; откройте более компактный план.',true); return; }
-      try { await loadXml(await file.text(),file.name,true); }
-      catch(err) { toast(err.message || 'Не удалось открыть план',true); }
+      if(file.size > 30*1024*1024) { toast(t('fileTooLarge'),true); return; }
+      const displayName = els.planNameInput.value.trim() || file.name;
+      try { await loadXml(await file.text(),displayName,true); }
+      catch(err) { toast(err.message || t('openFailed'),true); }
     }
 
-    els.chooseBtn.onclick = els.newPlanBtn.onclick = () => els.fileInput.click();
+    function setDetailsLocked(locked) {
+      state.detailsLocked = locked;
+      els.hideDetailsCheck.checked = locked;
+      els.detailsHandle.classList.toggle('visible', locked && state.screen === 'viewer');
+      if (locked) els.detailsDrawer.classList.remove('open');
+    }
+
+    function updateZoom() {
+      els.graph.style.transform = `scale(${state.zoom})`;
+      els.zoomLabel.textContent = `${Math.round(state.zoom * 100)}%`;
+    }
+
+    async function historyClick(e) {
+      const del=e.target.closest('[data-delete]');
+      if(del){e.stopPropagation();await historyStore.remove(del.dataset.delete);await refreshHistory();return;}
+      const item=e.target.closest('.history-item');
+      if(!item)return;
+      const saved=state.history.find(x=>x.id===item.dataset.id);
+      if(saved){try{await loadXml(saved.xml,saved.name,false);openHistory(false);}catch(err){toast(err.message,true);}}
+    }
+
+    async function clearHistory() {
+      if(!state.history.length || !confirm(t('clearConfirm'))) return;
+      await historyStore.clear();
+      await refreshHistory();
+      toast(t('historyCleared'));
+    }
+
+    els.chooseBtn.onclick = () => els.fileInput.click();
+    els.menuBtn.onclick = showHome;
     els.fileInput.onchange = () => { readFile(els.fileInput.files[0]); els.fileInput.value=''; };
-    els.parsePasteBtn.onclick = async () => { const xml=els.pasteBox.value.trim(); if(!xml)return toast('Сначала вставьте ShowPlan XML',true); try{await loadXml(xml,'Вставленный план.sqlplan',true);}catch(err){toast(err.message,true);} };
+    els.parsePasteBtn.onclick = async () => { const xml=els.pasteBox.value.trim(); if(!xml)return toast(t('pasteFirst'),true); const name=els.planNameInput.value.trim()||`${t('pastedPlan')}.sqlplan`; try{await loadXml(xml,name,true);}catch(err){toast(err.message,true);} };
     ['dragenter','dragover'].forEach(type => document.addEventListener(type,e=>{e.preventDefault();els.dropCard.classList.add('drag');}));
     ['dragleave','drop'].forEach(type => document.addEventListener(type,e=>{e.preventDefault();els.dropCard.classList.remove('drag');}));
     document.addEventListener('drop',e=>readFile(e.dataTransfer.files[0]));
-    els.statementTabs.addEventListener('click',e=>{ const b=e.target.closest('[data-index]'); if(!b)return; state.statementIndex=Number(b.dataset.index); const s=currentStatement(); state.selectedId=s.roots[0]?.id||null; els.detailsDrawer.classList.remove('open'); renderAll(); });
+    els.statementTabs.addEventListener('click',e=>{ const b=e.target.closest('[data-index]'); if(!b)return; state.statementIndex=Number(b.dataset.index); const s=currentStatement(); state.selectedId=s.roots[0]?.id||null; renderAll(); });
     els.metricSwitch.addEventListener('click',e=>{ const b=e.target.closest('[data-metric]'); if(!b)return; state.metric=b.dataset.metric; renderTree(); });
-    els.tree.addEventListener('click',e=>{const row=e.target.closest('[data-id]');if(row)selectNode(row.dataset.id,true);});
-    els.graph.addEventListener('click',e=>{const card=e.target.closest('.node-card[data-id]');if(card)selectNode(card.dataset.id,false);});
-    els.detailsBtn.onclick=()=>{const n=selectedNode();if(n){renderDetails(n);els.detailsDrawer.classList.toggle('open');}};
+    els.tree.addEventListener('click',e=>{if(state.dragMoved){state.dragMoved=false;return;}const row=e.target.closest('[data-id]');if(row)selectNode(row.dataset.id);});
+    els.graph.addEventListener('click',e=>{if(state.dragMoved){state.dragMoved=false;return;}const card=e.target.closest('.node-card[data-id]');if(card)selectNode(card.dataset.id);});
+    els.detailsBtn.onclick=()=>{const n=selectedNode();if(!n)return;if(state.detailsLocked)setDetailsLocked(false);renderDetails(n);els.detailsDrawer.classList.toggle('open');};
     els.closeDetails.onclick=()=>els.detailsDrawer.classList.remove('open');
-    els.fitBtn.onclick=()=>els.canvasWrap.scrollTo({left:0,top:0,behavior:'smooth'});
-    els.queryBtn.onclick=()=>{els.queryText.textContent=currentStatement()?.text||'Текст запроса отсутствует в XML.';els.queryModal.classList.add('open');};
+    els.hideDetailsCheck.onchange=()=>setDetailsLocked(els.hideDetailsCheck.checked);
+    els.detailsHandle.onclick=()=>{setDetailsLocked(false);const n=selectedNode();if(n)renderDetails(n);els.detailsDrawer.classList.add('open');};
+    els.fitBtn.onclick=()=>{state.zoom=1;updateZoom();els.canvasWrap.scrollTo({left:0,top:0,behavior:'smooth'});};
+    els.queryBtn.onclick=()=>{if(els.queryBtn.disabled)return;els.queryText.textContent=currentStatement()?.text||t('queryUnavailable');els.queryModal.classList.add('open');};
     els.closeQuery.onclick=()=>els.queryModal.classList.remove('open');
     els.queryModal.addEventListener('click',e=>{if(e.target===els.queryModal)els.queryModal.classList.remove('open');});
     els.historyBtn.onclick=()=>openHistory(true); els.closeHistory.onclick=els.overlay.onclick=()=>openHistory(false);
-    els.historyList.addEventListener('click',async e=>{
-      const del=e.target.closest('[data-delete]');
-      if(del){e.stopPropagation();await historyStore.remove(del.dataset.delete);await refreshHistory();return;}
-      const item=e.target.closest('.history-item');if(!item)return;const saved=state.history.find(x=>x.id===item.dataset.id);if(saved){try{await loadXml(saved.xml,saved.name,false);openHistory(false);}catch(err){toast(err.message,true);}}
-    });
-    els.clearHistoryBtn.onclick=async()=>{if(!state.history.length||!confirm('Удалить все сохранённые планы? Это действие нельзя отменить.'))return;await historyStore.clear();await refreshHistory();toast('История очищена без возможности восстановления');};
+    els.historyList.addEventListener('click',historyClick);
+    els.homeHistoryList.addEventListener('click',historyClick);
+    els.clearHistoryBtn.onclick=els.homeClearHistoryBtn.onclick=clearHistory;
+    els.languageSelect.onchange=()=>{locale=els.languageSelect.value;localStorage.setItem('sql-plan-language',locale);applyI18n();};
     window.addEventListener('keydown',e=>{if(e.key==='Escape'){els.queryModal.classList.remove('open');els.detailsDrawer.classList.remove('open');openHistory(false);}});
+
+    let graphPan = null;
+    els.canvasWrap.addEventListener('pointerdown',e=>{if(e.button!==0)return;graphPan={x:e.clientX,y:e.clientY,left:els.canvasWrap.scrollLeft,top:els.canvasWrap.scrollTop};state.dragMoved=false;els.canvasWrap.setPointerCapture(e.pointerId);els.canvasWrap.classList.add('panning');});
+    els.canvasWrap.addEventListener('pointermove',e=>{if(!graphPan)return;const dx=e.clientX-graphPan.x,dy=e.clientY-graphPan.y;if(Math.abs(dx)+Math.abs(dy)>4)state.dragMoved=true;els.canvasWrap.scrollLeft=graphPan.left-dx;els.canvasWrap.scrollTop=graphPan.top-dy;});
+    const endGraphPan=()=>{graphPan=null;els.canvasWrap.classList.remove('panning');};
+    els.canvasWrap.addEventListener('pointerup',endGraphPan);els.canvasWrap.addEventListener('pointercancel',endGraphPan);
+    els.canvasWrap.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();const old=state.zoom;const factor=Math.exp(-e.deltaY*.0015);const next=Math.max(.35,Math.min(2.5,old*factor));if(Math.abs(next-old)<.001)return;const rect=els.canvasWrap.getBoundingClientRect();const px=e.clientX-rect.left,py=e.clientY-rect.top;const contentX=(els.canvasWrap.scrollLeft+px)/old,contentY=(els.canvasWrap.scrollTop+py)/old;state.zoom=next;updateZoom();requestAnimationFrame(()=>{els.canvasWrap.scrollLeft=contentX*next-px;els.canvasWrap.scrollTop=contentY*next-py;});},{passive:false});
+
+    let treePan = null;
+    els.tree.addEventListener('pointerdown',e=>{if(e.button!==0||!e.ctrlKey)return;e.preventDefault();treePan={x:e.clientX,y:e.clientY,left:els.tree.scrollLeft,top:els.tree.scrollTop};state.dragMoved=false;els.tree.setPointerCapture(e.pointerId);els.tree.classList.add('ctrl-panning');});
+    els.tree.addEventListener('pointermove',e=>{if(!treePan)return;const dx=e.clientX-treePan.x,dy=e.clientY-treePan.y;if(Math.abs(dx)+Math.abs(dy)>4)state.dragMoved=true;els.tree.scrollLeft=treePan.left-dx;els.tree.scrollTop=treePan.top-dy;});
+    const endTreePan=()=>{treePan=null;els.tree.classList.remove('ctrl-panning');};
+    els.tree.addEventListener('pointerup',endTreePan);els.tree.addEventListener('pointercancel',endTreePan);
 
     let resizing=false;
     els.resizer.addEventListener('pointerdown',e=>{resizing=true;els.resizer.setPointerCapture(e.pointerId);els.resizer.classList.add('dragging');});
     els.resizer.addEventListener('pointermove',e=>{if(!resizing)return;const width=Math.max(270,Math.min(window.innerWidth*.65,e.clientX));document.documentElement.style.setProperty('--left-width',width+'px');});
     els.resizer.addEventListener('pointerup',()=>{resizing=false;els.resizer.classList.remove('dragging');});
 
+    applyI18n();
     refreshHistory().catch(()=>{});
   })();
   </script>
