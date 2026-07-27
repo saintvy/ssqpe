@@ -7,15 +7,21 @@ import { pathToFileURL } from 'node:url';
 const root = resolve(import.meta.dirname, '..');
 const html = join(root, 'app', 'ms-sql-plan-analyzer.html');
 const chromeCandidates = [
+  process.env.CHROME_PATH,
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
   'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
   'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-  'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
-];
+  'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+  '/usr/bin/google-chrome',
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+].filter(Boolean);
 const browserPath = chromeCandidates.find(existsSync);
 if (!browserPath) throw new Error('Chrome or Edge not found');
 
 function filesUnder(dir) {
+  if (!existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
     const path = join(dir, entry.name);
     return entry.isDirectory() ? filesUnder(path) : /\.(sqlplan|sqplan)$/i.test(entry.name) ? [path] : [];
@@ -24,7 +30,7 @@ function filesUnder(dir) {
 
 const allPlans = filesUnder(join(root, 'Test data'));
 const smokeSkip = Number(process.env.SMOKE_SKIP || 0);
-const plans = process.env.SMOKE_LIMIT ? allPlans.slice(smokeSkip, smokeSkip + Number(process.env.SMOKE_LIMIT)) : allPlans.slice(smokeSkip);
+const plans = process.env.SMOKE_PUBLIC_ONLY ? [] : process.env.SMOKE_LIMIT ? allPlans.slice(smokeSkip, smokeSkip + Number(process.env.SMOKE_LIMIT)) : allPlans.slice(smokeSkip);
 const repeatedSubplan = `<?xml version="1.0"?>
 <ShowPlanXML xmlns="http://schemas.microsoft.com/sqlserver/2004/07/showplan" Version="1.0" Build="test"><BatchSequence><Batch><Statements>
 <StmtSimple StatementId="1" StatementType="SELECT" StatementText="synthetic repeated subtree"><QueryPlan>
@@ -96,6 +102,9 @@ try {
   const input = await send('DOM.querySelector', { nodeId: documentNode.root.nodeId, selector: '#fileInput' });
   const failures = [];
   let reusableZones = 0;
+  let timeAlerts = 0;
+  let rowAlerts = 0;
+  let maxIndent = 0;
   for (const plan of plans) {
     if (process.env.SMOKE_PROGRESS) console.log(`Testing ${basename(plan)}`);
     await evaluate("document.getElementById('toast').textContent = ''");
@@ -111,9 +120,12 @@ try {
         const boxes=cards.map(card=>({id:card.dataset.id,left:card.offsetLeft,top:card.offsetTop,right:card.offsetLeft+card.offsetWidth,bottom:card.offsetTop+card.offsetHeight}));
         let overlaps=0;
         for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){const a=boxes[i],b=boxes[j];if(Math.min(a.right,b.right)-Math.max(a.left,b.left)>1&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>1)overlaps++;}
-        return {tabs:document.querySelectorAll('.statement-tab').length,tree:document.querySelectorAll('.tree-row').length,cards:cards.length,zones:document.querySelectorAll('.subplan-zone').length,overlaps,missingFlagTips:Array.from(document.querySelectorAll('.flag')).filter(x=>!x.title).length,meta:document.getElementById('planMeta').textContent};
+        return {tabs:document.querySelectorAll('.statement-tab').length,tree:document.querySelectorAll('.tree-row').length,cards:cards.length,zones:document.querySelectorAll('.subplan-zone').length,overlaps,timeAlerts:document.querySelectorAll('[data-alert="time"]').length,rowAlerts:document.querySelectorAll('[data-alert="rows"]').length,maxIndent:Math.max(0,...Array.from(document.querySelectorAll('.tree-op')).map(x=>parseFloat(getComputedStyle(x).paddingLeft))),missingFlagTips:Array.from(document.querySelectorAll('.flag,.performance-badge')).filter(x=>!x.title).length,meta:document.getElementById('planMeta').textContent};
       })()`);
       reusableZones += snapshot.zones;
+      timeAlerts += snapshot.timeAlerts;
+      rowAlerts += snapshot.rowAlerts;
+      maxIndent = Math.max(maxIndent, snapshot.maxIndent);
       if (!snapshot.tabs || Boolean(snapshot.tree) !== Boolean(snapshot.cards)) failures.push(`${plan}: inconsistent UI (${JSON.stringify(snapshot)})`);
       if (snapshot.overlaps) failures.push(`${plan}: ${snapshot.overlaps} graph-card overlaps`);
       if (snapshot.missingFlagTips) failures.push(`${plan}: flags without tooltips`);
@@ -125,11 +137,21 @@ try {
       failures.push(`${plan}: ${error.message}`);
     }
   }
-  const interaction = await evaluate(`(() => {
-    document.querySelector('.node-card').click();
+  if (!plans.length) {
+    await evaluate(`document.getElementById('pasteBox').value = ${JSON.stringify(repeatedSubplan)}; document.getElementById('parsePasteBtn').click()`);
+    await retry(async () => { if (!await evaluate("document.querySelectorAll('.node-card').length > 0")) throw new Error('Synthetic plan did not render'); });
+  }
+  const point = await evaluate(`(() => {const r=document.querySelector('.node-card').getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}})()`);
+  await send('Input.dispatchMouseEvent',{type:'mousePressed',x:point.x,y:point.y,button:'left',clickCount:1});
+  await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:point.x,y:point.y,button:'left',clickCount:1});
+  const lockState = await evaluate(`(() => {
     const drawerOpened=document.getElementById('detailsDrawer').classList.contains('open');
     const check=document.getElementById('hideDetailsCheck');check.checked=true;check.dispatchEvent(new Event('change',{bubbles:true}));
-    document.querySelector('.node-card').click();
+    return {drawerOpened};
+  })()`);
+  await send('Input.dispatchMouseEvent',{type:'mousePressed',x:point.x,y:point.y,button:'left',clickCount:1});
+  await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:point.x,y:point.y,button:'left',clickCount:1});
+  const interaction = await evaluate(`(() => {
     const stayedClosed=!document.getElementById('detailsDrawer').classList.contains('open')&&document.getElementById('detailsHandle').classList.contains('visible');
     document.getElementById('detailsHandle').click();
     const unlocked=document.getElementById('detailsDrawer').classList.contains('open');
@@ -137,14 +159,15 @@ try {
     const russian=document.getElementById('menuBtn').textContent;
     language.value='en';language.dispatchEvent(new Event('change',{bubbles:true}));
     const english=document.getElementById('menuBtn').textContent;
-    const canvas=document.getElementById('canvasWrap');const before=document.getElementById('zoomLabel').textContent;canvas.dispatchEvent(new WheelEvent('wheel',{ctrlKey:true,deltaY:-150,clientX:100,clientY:100,cancelable:true,bubbles:true}));const after=document.getElementById('zoomLabel').textContent;
+    const canvas=document.getElementById('canvasWrap');const before=document.getElementById('zoomLabel').textContent;canvas.dispatchEvent(new WheelEvent('wheel',{deltaY:-150,clientX:100,clientY:100,cancelable:true,bubbles:true}));const after=document.getElementById('zoomLabel').textContent;
     document.getElementById('menuBtn').click();
-    return {drawerOpened,stayedClosed,unlocked,russian,english,before,after,homeVisible:!document.getElementById('homeSidebar').classList.contains('hidden'),viewerButtonsHidden:document.getElementById('menuBtn').classList.contains('hidden')&&document.getElementById('historyBtn').classList.contains('hidden'),languageSaved:localStorage.getItem('sql-plan-language')};
+    return {stayedClosed,unlocked,russian,english,before,after,homeVisible:!document.getElementById('homeSidebar').classList.contains('hidden'),viewerButtonsHidden:document.getElementById('menuBtn').classList.contains('hidden')&&document.getElementById('historyBtn').classList.contains('hidden'),languageSaved:localStorage.getItem('sql-plan-language')};
   })()`);
-  if (!interaction.drawerOpened || !interaction.stayedClosed || !interaction.unlocked) failures.push(`Details locking failed: ${JSON.stringify(interaction)}`);
+  if (!lockState.drawerOpened || !interaction.stayedClosed || !interaction.unlocked) failures.push(`Graph click or details locking failed: ${JSON.stringify({lockState,interaction})}`);
   if (interaction.russian !== 'Возврат в меню' || interaction.english !== 'Back to menu' || interaction.languageSaved !== 'en') failures.push(`Language switching failed: ${JSON.stringify(interaction)}`);
   if (interaction.before === interaction.after) failures.push(`Graph zoom failed: ${JSON.stringify(interaction)}`);
   if (!interaction.homeVisible || !interaction.viewerButtonsHidden) failures.push(`Home screen state failed: ${JSON.stringify(interaction)}`);
+  if (plans.length > 10 && (!timeAlerts || !rowAlerts || maxIndent <= 105)) failures.push(`PEV2 alerts or deep indentation missing: ${JSON.stringify({timeAlerts,rowAlerts,maxIndent})}`);
   await evaluate(`document.getElementById('planNameInput').value='Smoke custom name'; document.getElementById('pasteBox').value = ${JSON.stringify(repeatedSubplan)}; document.getElementById('parsePasteBtn').click()`);
   await retry(async () => {
     const snapshot = await evaluate("({title:document.getElementById('planTitle').textContent,zones:document.querySelectorAll('.subplan-zone').length,calls:document.querySelectorAll('.edge.call').length})");
@@ -157,7 +180,7 @@ try {
     console.error(failures.join('\n'));
     process.exitCode = 1;
   } else {
-    console.log(`OK: ${plans.length} SQL Server plans opened in Chromium; ${reusableZones} reusable-subplan zones rendered`);
+    console.log(`OK: ${plans.length} SQL Server plans opened in Chromium; ${reusableZones} reusable-subplan zones; ${timeAlerts} time alerts; ${rowAlerts} row-estimate alerts`);
   }
 } finally {
   browser.kill();

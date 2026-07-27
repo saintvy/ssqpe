@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>SQL Server Plan Explorer</title>
+  <title>SSQPE — SQL Server Query Plan Explorer</title>
   <style>
     :root {
       color-scheme: dark;
@@ -31,7 +31,7 @@
     .app { height: 100%; display: grid; grid-template-rows: 54px minmax(0, 1fr); }
     .topbar { display: flex; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid var(--border); background: #141923; min-width: 0; }
     .brand { display: flex; align-items: center; gap: 10px; font-weight: 720; letter-spacing: .1px; white-space: nowrap; }
-    .logo { width: 27px; height: 27px; display: grid; place-items: center; border-radius: 8px; color: #08131b; background: linear-gradient(135deg, var(--accent), #5fe0bd); font-size: 14px; font-weight: 900; }
+    .logo { min-width: 50px; height: 27px; padding: 0 7px; display: grid; place-items: center; border-radius: 8px; color: #08131b; background: linear-gradient(135deg, var(--accent), #5fe0bd); font-size: 12px; font-weight: 900; letter-spacing: .4px; }
     .top-actions { display: flex; gap: 8px; margin-left: auto; }
     .language-select { color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px; padding: 6px 8px; cursor: pointer; }
     .btn { border: 1px solid var(--border); background: var(--surface-2); border-radius: 7px; padding: 7px 11px; cursor: pointer; transition: .15s; white-space: nowrap; }
@@ -69,8 +69,8 @@
     .tree-row:hover { background: #202735; }
     .tree-row.selected { background: #233148; border-left-color: var(--accent); }
     .tree-name { min-width: 0; flex: 1 1 auto; overflow: hidden; }
-    .tree-op { display: block; padding-left: min(calc(var(--depth) * 15px), 105px); font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tree-object { display: block; padding-left: min(calc(var(--depth) * 15px), 105px); color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tree-op { display: block; padding-left: calc(var(--depth) * 15px); font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tree-object { display: block; padding-left: calc(var(--depth) * 15px); color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tree-bar { flex: 0 0 118px; width: 118px; height: 18px; position: relative; overflow: hidden; border-radius: 4px; background: #10151e; box-shadow: inset 0 0 0 1px #2b3546; }
     .tree-bar .subtree, .tree-bar .self { position: absolute; left: 0; top: 0; bottom: 0; min-width: 0; }
     .tree-bar .subtree { opacity: .27; }
@@ -112,7 +112,7 @@
     .node-card.call-node { border-color: #655db0; background: #201f35; }
     .node-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 9px 10px 5px; }
     .node-title { font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .node-id { color: var(--muted); font-size: 11px; }
+    .node-id { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 11px; }
     .node-subtitle { padding: 0 10px 7px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; }
     .node-stats { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #30394a; }
     .stat { padding: 6px 8px; min-width: 0; }
@@ -132,6 +132,14 @@
     .flag.warn { background: #5d4b1e; color: var(--warning); }
     .flag.parallel { background: #243f62; color: #8bc8ff; }
     .flag.batch { background: #244b42; color: #72dbbd; }
+    .performance-badges { display: inline-flex; align-items: center; gap: 3px; margin-left: 5px; vertical-align: -2px; }
+    .performance-badge { position: relative; display: inline-grid; place-items: center; width: 17px; height: 17px; border-radius: 4px; background: color-mix(in srgb, currentColor 20%, #18202c); cursor: help; }
+    .performance-badge svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .performance-badge.severity-2 { color: #fddb61; }
+    .performance-badge.severity-3 { color: #ee8800; }
+    .performance-badge.severity-4 { color: #ff5964; }
+    .performance-badge::after { content: attr(data-tip); position: absolute; left: 0; bottom: calc(100% + 6px); width: max-content; max-width: 260px; padding: 5px 7px; border: 1px solid #516079; border-radius: 5px; background: #111722; color: var(--text); font-size: 11px; font-weight: 500; line-height: 1.35; white-space: normal; opacity: 0; transform: translateY(3px); pointer-events: none; transition: .12s; box-shadow: 0 5px 14px rgba(0,0,0,.35); z-index: 25; }
+    .performance-badge:hover::after, .performance-badge:focus-visible::after { opacity: 1; transform: translateY(0); }
     .subplan-zone { position: absolute; border: 1px dashed #5c557f; background: rgba(43,39,70,.22); border-radius: 13px; }
     .subplan-label { position: absolute; left: 12px; top: 9px; color: #b7aefa; font-weight: 700; }
     .details-drawer { position: absolute; top: 45px; right: 0; bottom: 0; width: min(430px, 88%); z-index: 30; transform: translateX(102%); transition: transform .18s ease; background: #171c26; border-left: 1px solid var(--border); box-shadow: -10px 0 30px rgba(0,0,0,.28); display: grid; grid-template-rows: auto minmax(0,1fr); }
@@ -188,7 +196,7 @@
 <body>
   <div class="app">
     <header class="topbar">
-      <div class="brand"><span class="logo">QP</span><span>SQL Server Plan Explorer</span></div>
+      <div class="brand"><span class="logo">SSQPE</span><span>SQL Server Query Plan Explorer</span></div>
       <div class="top-actions">
         <button class="btn hidden" id="menuBtn" data-i18n="backToMenu"></button>
         <button class="btn hidden" id="historyBtn"><span data-i18n="history"></span> <span id="historyCount"></span></button>
@@ -279,7 +287,7 @@
         noStatementGraph: 'В этом запросе нет графа операторов.', noGraphFromServer: 'Для этого запроса SQL Server не предоставил дерево операторов.', timeUnavailable: 'В XML отсутствует ActualElapsedms — фактическое время операторов неизвестно.',
         subtree: 'Поддерево', currentNode: 'Текущий оператор', estimate: 'Оценка', actual: 'Факт', noActualRows: 'Фактическое количество строк отсутствует', underestimated: 'Недооценено: фактических строк больше оценки', overestimated: 'Переоценено: фактических строк меньше оценки', closeEstimate: 'Оценка близка к факту', underShort: 'недооценка', overShort: 'переоценка', closeShort: 'близко к факту',
         clickNode: 'Нажмите, чтобы открыть характеристики', rowsEstimateActual: 'Строки: оценка / факт', timeCost: 'Время / стоимость', executions: 'Выполнения', outputColumns: 'Выходные столбцы',
-        flagWarning: 'Предупреждение оператора', flagParallel: 'Параллельное выполнение', flagBatch: 'Пакетный режим выполнения',
+        flagWarning: 'Предупреждение оператора', flagParallel: 'Параллельное выполнение', flagBatch: 'Пакетный режим выполнения', slowNode: 'Медленный оператор: {percent}% общего времени ({time})', badRowEstimate: 'Плохая оценка строк: {direction} в {factor}× (оценка {estimated}, факт {actual})', underDirection: 'недооценка', overDirection: 'переоценка',
         operator: 'Оператор', primaryMetrics: 'Основные показатели', estimatedRows: 'Оценка строк', actualRows: 'Фактические строки', actualTime: 'Фактическое время', subtreeCost: 'Стоимость поддерева', selfCost: 'Собственная стоимость', mode: 'Режим',
         ioAndCache: 'Ввод-вывод и кеш', logicalReads: 'Логические чтения', physicalReads: 'Физические чтения', readAhead: 'Упреждающие чтения', lobLogicalReads: 'Логические чтения LOB', lobPhysicalReads: 'Физические чтения LOB', scans: 'Сканирования',
         warnings: 'Предупреждения', object: 'Объект', operandsPredicates: 'Операнды и предикаты', definedValues: 'Определяемые значения', optimizerEstimates: 'Оценки оптимизатора', averageRowSize: 'Средний размер строки', estimatedRowsRead: 'Оценка прочитанных строк', tableCardinality: 'Кардинальность таблицы', showPlanAttributes: 'Атрибуты ShowPlan', threads: 'Потоки', thread: 'Поток', elapsed: 'Время',
@@ -300,7 +308,7 @@
         noStatementGraph: 'This query has no operator graph.', noGraphFromServer: 'SQL Server did not provide an operator tree for this query.', timeUnavailable: 'ActualElapsedms is absent from the XML — operator elapsed time is unknown.',
         subtree: 'Subtree', currentNode: 'Current operator', estimate: 'Estimate', actual: 'Actual', noActualRows: 'Actual row count is unavailable', underestimated: 'Underestimated: actual rows exceed the estimate', overestimated: 'Overestimated: actual rows are below the estimate', closeEstimate: 'Estimate is close to actual', underShort: 'underestimated', overShort: 'overestimated', closeShort: 'close to actual',
         clickNode: 'Click to open operator details', rowsEstimateActual: 'Rows: estimate / actual', timeCost: 'Time / cost', executions: 'Executions', outputColumns: 'Output columns',
-        flagWarning: 'Operator warning', flagParallel: 'Parallel execution', flagBatch: 'Batch execution mode',
+        flagWarning: 'Operator warning', flagParallel: 'Parallel execution', flagBatch: 'Batch execution mode', slowNode: 'Slow operator: {percent}% of total time ({time})', badRowEstimate: 'Bad row estimate: {direction} by {factor}× (estimated {estimated}, actual {actual})', underDirection: 'underestimated', overDirection: 'overestimated',
         operator: 'Operator', primaryMetrics: 'Primary metrics', estimatedRows: 'Estimated rows', actualRows: 'Actual rows', actualTime: 'Actual elapsed time', subtreeCost: 'Subtree cost', selfCost: 'Self cost', mode: 'Mode',
         ioAndCache: 'I/O and cache', logicalReads: 'Logical reads', physicalReads: 'Physical reads', readAhead: 'Read-ahead reads', lobLogicalReads: 'LOB logical reads', lobPhysicalReads: 'LOB physical reads', scans: 'Scans',
         warnings: 'Warnings', object: 'Object', operandsPredicates: 'Operands and predicates', definedValues: 'Defined values', optimizerEstimates: 'Optimizer estimates', averageRowSize: 'Average row size', estimatedRowsRead: 'Estimated rows read', tableCardinality: 'Table cardinality', showPlanAttributes: 'ShowPlan attributes', threads: 'Threads', thread: 'Thread', elapsed: 'Elapsed',
@@ -389,6 +397,52 @@
       if (n >= 1024) return (n / 1024).toFixed(2) + ' ' + t('megabyte');
       return formatNumber(n) + ' ' + t('kilobyte');
     };
+
+    function timeSeverity(percent) {
+      return percent > 90 ? 4 : percent > 40 ? 3 : percent > 10 ? 2 : 0;
+    }
+
+    function estimateInfo(node) {
+      if (!node.runtime?.hasRows) return null;
+      const estimated = node.estimatedRows;
+      const actual = node.runtime.ActualRows;
+      let factor = 1;
+      let direction = '';
+      if (actual > estimated) {
+        direction = 'under';
+        factor = estimated === 0 ? Infinity : actual / estimated;
+      } else if (actual < estimated) {
+        direction = 'over';
+        factor = actual === 0 ? Infinity : estimated / actual;
+      }
+      const severity = factor > 1000 ? 4 : factor > 100 ? 3 : factor > 10 ? 2 : 0;
+      return { estimated, actual, factor, direction, severity };
+    }
+
+    function statementExecutionTime(statement) {
+      const rootTimes = statement.roots.map(root => root.elapsed).filter(value => value !== null && value > 0);
+      if (rootTimes.length) return Math.max(...rootTimes);
+      return Math.max(...flatten(statement.roots).map(node => node.elapsed || 0), 0);
+    }
+
+    function performanceBadges(node, executionTime) {
+      const badges = [];
+      if (executionTime > 0 && node.selfTime !== null) {
+        const percent = Math.round((node.selfTime / executionTime) * 100);
+        const severity = timeSeverity(percent);
+        if (severity) {
+          const tip = t('slowNode',{percent,time:formatMs(node.selfTime)});
+          badges.push(`<span class="performance-badge severity-${severity}" tabindex="0" data-alert="time" data-tip="${esc(tip)}" title="${esc(tip)}"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6"></circle><path d="M8 4.5V8l2.6 1.7"></path></svg></span>`);
+        }
+      }
+      const estimate = estimateInfo(node);
+      if (estimate?.severity) {
+        const factor = estimate.factor === Infinity ? '∞' : formatNumber(estimate.factor);
+        const tip = t('badRowEstimate',{direction:t(estimate.direction === 'under' ? 'underDirection' : 'overDirection'),factor,estimated:formatNumber(estimate.estimated),actual:formatNumber(estimate.actual)});
+        badges.push(`<span class="performance-badge severity-${estimate.severity}" tabindex="0" data-alert="rows" data-tip="${esc(tip)}" title="${esc(tip)}"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4h7M6 8h7M6 12h7"></path><path d="M3 4h.01M3 8h.01M3 12h.01"></path></svg></span>`);
+      }
+      return badges.length ? `<span class="performance-badges">${badges.join('')}</span>` : '';
+    }
 
     function directWithin(relop, tag) {
       return all(relop, tag).filter(el => {
@@ -825,7 +879,7 @@
       return `M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`;
     }
 
-    function nodeCard(n, pos, sub = false) {
+    function nodeCard(n, pos, sub = false, executionTime = 0) {
       const actualRows = n.runtime?.hasRows ? n.runtime.ActualRows : null;
       const subtitle = n.objectLabel || (n.expressions[0] ? shortText(n.expressions[0],70) : n.logical);
       const flags = [
@@ -836,7 +890,7 @@
       const call = !sub && n.duplicateGroup;
       const subplanName = n.duplicateGroup ? t('reusableSubplan',{number:n.duplicateGroup.number}) : '';
       return `<article class="node-card ${n.id===state.selectedId?'selected expanded':''} ${n.warnings.length?'warning':''} ${call?'call-node':''}" data-id="${esc(n.id)}" style="left:${pos.x}px;top:${pos.y}px" title="${esc(t('clickNode'))}">
-        <div class="node-top"><div class="node-title">${call?'↗ ':''}${esc(call ? subplanName : n.physical)}</div><div class="node-id">#${esc(n.nodeId)}</div></div>
+        <div class="node-top"><div class="node-title">${call?'↗ ':''}${esc(call ? subplanName : n.physical)}</div><div class="node-id">${performanceBadges(n,executionTime)}<span>#${esc(n.nodeId)}</span></div></div>
         <div class="node-subtitle">${esc(call ? n.physical + (subtitle?' · '+subtitle:'') : subtitle || n.logical || '—')}</div><div class="node-flags">${flags}</div>
         <div class="node-stats"><div class="stat"><div class="stat-label">${esc(t('rowsEstimateActual'))}</div><div class="stat-value">${formatNumber(n.estimatedRows)} / ${actualRows===null?t('missing'):formatNumber(actualRows)}</div></div><div class="stat"><div class="stat-label">${esc(t('timeCost'))}</div><div class="stat-value">${formatMs(n.elapsed)} / ${formatNumber(n.estimatedCost)}</div></div></div>
         <div class="node-expanded"><div class="expanded-grid"><div class="expanded-item"><b>CPU</b><span>${n.runtime?.hasCPU?formatMs(n.runtime.ActualCPUms):t('missing')}</span></div><div class="expanded-item"><b>${esc(t('logicalReads'))}</b><span>${n.runtime?formatNumber(n.runtime.ActualLogicalReads):t('missing')}</span></div><div class="expanded-item"><b>${esc(t('executions'))}</b><span>${n.runtime?formatNumber(n.runtime.ActualExecutions):t('missing')}</span></div><div class="expanded-item"><b>${esc(t('outputColumns'))}</b><span>${formatNumber(n.outputs.length)}</span></div></div></div>
@@ -850,6 +904,7 @@
         els.graph.style.width='100%'; els.graph.style.height='100%'; return;
       }
       const layout = state.layout = layoutGraph(s);
+      const executionTime = statementExecutionTime(s);
       const edges=[];
       layout.mainNodes.forEach(n => {
         if(n.parent && layout.mainNodes.includes(n.parent) && !n.parent.duplicateGroup) edges.push(`<path class="edge" d="${edgePath(n.parent._layout,n._layout,layout.cardW,layout.cardH)}"/>`);
@@ -862,8 +917,8 @@
         });
       });
       const zones=layout.subplans.map(z=>`<div class="subplan-zone" style="left:${z.x}px;top:${z.y}px;width:${z.width}px;height:${z.height}px"><div class="subplan-label">↗ ${esc(t('reusableSubplan',{number:z.sp.number}))} · ${z.sp.calls.length} ${esc(t('calls'))}</div></div>`).join('');
-      const mainCards=layout.mainNodes.map(n=>nodeCard(n,n._layout,false)).join('');
-      const subCards=layout.subplans.flatMap(z=>z.nodes.map(n=>nodeCard(n,n._subLayout,true))).join('');
+      const mainCards=layout.mainNodes.map(n=>nodeCard(n,n._layout,false,executionTime)).join('');
+      const subCards=layout.subplans.flatMap(z=>z.nodes.map(n=>nodeCard(n,n._subLayout,true,executionTime))).join('');
       els.graph.style.width=layout.width+'px'; els.graph.style.height=layout.height+'px';
       els.graph.innerHTML=`${zones}<svg class="edges" width="${layout.width}" height="${layout.height}" aria-hidden="true">${edges.join('')}</svg>${mainCards}${subCards}`;
       const selected=$(`.node-card[data-id="${CSS.escape(state.selectedId || '')}"]`,els.graph);
@@ -1023,11 +1078,11 @@
     window.addEventListener('keydown',e=>{if(e.key==='Escape'){els.queryModal.classList.remove('open');els.detailsDrawer.classList.remove('open');openHistory(false);}});
 
     let graphPan = null;
-    els.canvasWrap.addEventListener('pointerdown',e=>{if(e.button!==0)return;graphPan={x:e.clientX,y:e.clientY,left:els.canvasWrap.scrollLeft,top:els.canvasWrap.scrollTop};state.dragMoved=false;els.canvasWrap.setPointerCapture(e.pointerId);els.canvasWrap.classList.add('panning');});
-    els.canvasWrap.addEventListener('pointermove',e=>{if(!graphPan)return;const dx=e.clientX-graphPan.x,dy=e.clientY-graphPan.y;if(Math.abs(dx)+Math.abs(dy)>4)state.dragMoved=true;els.canvasWrap.scrollLeft=graphPan.left-dx;els.canvasWrap.scrollTop=graphPan.top-dy;});
+    els.canvasWrap.addEventListener('pointerdown',e=>{if(e.button!==0)return;graphPan={pointerId:e.pointerId,x:e.clientX,y:e.clientY,left:els.canvasWrap.scrollLeft,top:els.canvasWrap.scrollTop,captured:false};state.dragMoved=false;});
+    els.canvasWrap.addEventListener('pointermove',e=>{if(!graphPan)return;const dx=e.clientX-graphPan.x,dy=e.clientY-graphPan.y;if(!graphPan.captured&&Math.abs(dx)+Math.abs(dy)<=6)return;if(!graphPan.captured){graphPan.captured=true;els.canvasWrap.setPointerCapture(graphPan.pointerId);els.canvasWrap.classList.add('panning');}state.dragMoved=true;els.canvasWrap.scrollLeft=graphPan.left-dx;els.canvasWrap.scrollTop=graphPan.top-dy;});
     const endGraphPan=()=>{graphPan=null;els.canvasWrap.classList.remove('panning');};
     els.canvasWrap.addEventListener('pointerup',endGraphPan);els.canvasWrap.addEventListener('pointercancel',endGraphPan);
-    els.canvasWrap.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();const old=state.zoom;const factor=Math.exp(-e.deltaY*.0015);const next=Math.max(.35,Math.min(2.5,old*factor));if(Math.abs(next-old)<.001)return;const rect=els.canvasWrap.getBoundingClientRect();const px=e.clientX-rect.left,py=e.clientY-rect.top;const contentX=(els.canvasWrap.scrollLeft+px)/old,contentY=(els.canvasWrap.scrollTop+py)/old;state.zoom=next;updateZoom();requestAnimationFrame(()=>{els.canvasWrap.scrollLeft=contentX*next-px;els.canvasWrap.scrollTop=contentY*next-py;});},{passive:false});
+    els.canvasWrap.addEventListener('wheel',e=>{e.preventDefault();const old=state.zoom;const delta=e.deltaMode===1?e.deltaY*33:e.deltaMode===2?e.deltaY*300:e.deltaY;const factor=Math.exp(-delta*.0015);const next=Math.max(.35,Math.min(2.5,old*factor));if(Math.abs(next-old)<.001)return;const rect=els.canvasWrap.getBoundingClientRect();const px=e.clientX-rect.left,py=e.clientY-rect.top;const contentX=(els.canvasWrap.scrollLeft+px)/old,contentY=(els.canvasWrap.scrollTop+py)/old;state.zoom=next;updateZoom();requestAnimationFrame(()=>{els.canvasWrap.scrollLeft=contentX*next-px;els.canvasWrap.scrollTop=contentY*next-py;});},{passive:false});
 
     let treePan = null;
     els.tree.addEventListener('pointerdown',e=>{if(e.button!==0||!e.ctrlKey)return;e.preventDefault();treePan={x:e.clientX,y:e.clientY,left:els.tree.scrollLeft,top:els.tree.scrollTop};state.dragMoved=false;els.tree.setPointerCapture(e.pointerId);els.tree.classList.add('ctrl-panning');});
