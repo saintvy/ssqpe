@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-27
+
 ### Fixed
 
 - Derived operator time now considers every measured descendant, and the Time list value shows the derived operator contribution instead of inclusive elapsed time.
