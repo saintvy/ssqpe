@@ -45,6 +45,17 @@ const repeatedSubplan = `<?xml version="1.0"?>
 <RelOp NodeId="6" PhysicalOp="Index Seek" LogicalOp="Index Seek" EstimateRows="1" EstimatedTotalSubtreeCost="0.4"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1"/></RunTimeInformation><IndexScan><Object Schema="[dbo]" Table="[B]" Index="[IX_B]"/></IndexScan></RelOp>
 </NestedLoops></RelOp>
 </Concatenation></RelOp></QueryPlan></StmtSimple></Statements></Batch></BatchSequence></ShowPlanXML>`;
+const mixedModeTiming = `<?xml version="1.0"?>
+<ShowPlanXML xmlns="http://schemas.microsoft.com/sqlserver/2004/07/showplan" Version="1.0" Build="test"><BatchSequence><Batch><Statements>
+<StmtSimple StatementId="1" StatementType="SELECT" StatementText="synthetic mixed execution modes"><QueryPlan>
+<RelOp NodeId="0" PhysicalOp="Merge Join" LogicalOp="Inner Join" EstimateRows="1" EstimatedTotalSubtreeCost="1" EstimatedExecutionMode="Row"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1" ActualElapsedms="50000" ActualCPUms="40000" ActualExecutionMode="Row"/></RunTimeInformation><Merge>
+<RelOp NodeId="1" PhysicalOp="Sort" LogicalOp="Sort" EstimateRows="1" EstimatedTotalSubtreeCost="0.7" EstimatedExecutionMode="Batch"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1" ActualElapsedms="10000" ActualCPUms="9000" ActualExecutionMode="Batch"/></RunTimeInformation><Sort>
+<RelOp NodeId="2" PhysicalOp="Merge Join" LogicalOp="Inner Join" EstimateRows="1" EstimatedTotalSubtreeCost="0.5" EstimatedExecutionMode="Row"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1" ActualElapsedms="30000" ActualCPUms="28000" ActualExecutionMode="Row"/></RunTimeInformation><Merge>
+<RelOp NodeId="3" PhysicalOp="Index Scan" LogicalOp="Index Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.2" EstimatedExecutionMode="Row"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1" ActualElapsedms="25000" ActualCPUms="24000" ActualExecutionMode="Row"/></RunTimeInformation><IndexScan/></RelOp>
+<RelOp NodeId="4" PhysicalOp="Index Scan" LogicalOp="Index Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.1" EstimatedExecutionMode="Row"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1" ActualElapsedms="5000" ActualCPUms="4000" ActualExecutionMode="Row"/></RunTimeInformation><IndexScan/></RelOp>
+</Merge></RelOp></Sort></RelOp>
+<RelOp NodeId="5" PhysicalOp="Clustered Index Scan" LogicalOp="Clustered Index Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.2" EstimatedExecutionMode="Row"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1" ActualElapsedms="5000" ActualCPUms="0" ActualExecutionMode="Row"/></RunTimeInformation><IndexScan/></RelOp>
+</Merge></RelOp></QueryPlan></StmtSimple></Statements></Batch></BatchSequence></ShowPlanXML>`;
 const profile = mkdtempSync(join(tmpdir(), 'sql-plan-smoke-'));
 const port = 9300 + Math.floor(Math.random() * 500);
 const browser = spawn(browserPath, [
@@ -53,7 +64,7 @@ const browser = spawn(browserPath, [
 ], { stdio: 'ignore', windowsHide: true });
 
 const delay = ms => new Promise(resolveDelay => setTimeout(resolveDelay, ms));
-async function retry(fn, attempts = 80) {
+async function retry(fn, attempts = 200) {
   let error;
   for (let i = 0; i < attempts; i++) {
     try { return await fn(); } catch (e) { error = e; await delay(100); }
@@ -193,11 +204,11 @@ try {
       const card=document.querySelector('.node-card[data-subplan="false"][data-node-id="'+nodeId+'"]');
       const row=document.querySelector('.tree-row[data-id="'+card.dataset.id+'"]');
       const width=name=>parseFloat(row.querySelector('[data-series="'+name+'"]').style.width)||0;
-      return {elapsed:width('elapsed'),cpu:width('cpu'),value:row.querySelector('.tree-value').textContent};
+      return {elapsed:width('elapsed'),current:width('current'),value:row.querySelector('.tree-value').textContent};
     };
     return {root:series('0'),child:series('1'),legend:document.querySelectorAll('#metricNotice .metric-dot').length};
   })()`);
-  if (Math.abs(timeMetric.root.elapsed-100)>0.1 || Math.abs(timeMetric.root.cpu-(93600/351000*100))>0.1 || timeMetric.root.value!=='1.56 min' || Math.abs(timeMetric.child.elapsed-(172800/351000*100))>0.1 || Math.abs(timeMetric.child.cpu-(50000/351000*100))>0.1 || timeMetric.child.value!=='50.00 s' || timeMetric.legend!==2) failures.push(`Time metric elapsed/CPU scale failed: ${JSON.stringify(timeMetric)}`);
+  if (Math.abs(timeMetric.root.elapsed-100)>0.1 || Math.abs(timeMetric.root.current-(178200/351000*100))>0.1 || timeMetric.root.value!=='2.97 min' || Math.abs(timeMetric.child.elapsed-(172800/351000*100))>0.1 || timeMetric.child.current!==0 || timeMetric.child.value!=='0 ms' || timeMetric.legend!==2) failures.push(`Time metric elapsed/current-operator scale failed: ${JSON.stringify(timeMetric)}`);
 
   const treePoint = await evaluate(`(() => {const tree=document.getElementById('tree');tree.scrollLeft=0;const r=tree.getBoundingClientRect();return {x:r.right-25,y:r.top+80,left:r.left+25,canPan:tree.scrollWidth>tree.clientWidth}})()`);
   if (treePoint.canPan) {
@@ -229,7 +240,7 @@ try {
   if (!graphToTree.exists || !graphToTree.selected || graphToTree.rows<=1 || graphToTree.scrollTop<=0 || !graphToTree.drawer) failures.push(`Graph-to-tree camera focus failed: ${JSON.stringify(graphToTree)}`);
 
   const elapsedDetails = await evaluate(`(() => {const card=id=>document.querySelector('.node-card[data-node-id="'+id+'"]'),rowValue=id=>document.querySelector('.tree-row[data-id="'+card(id).dataset.id+'"] .tree-value').textContent;card('0').click();const rootText=document.getElementById('drawerBody').textContent,rootValue=rowValue('0');card('1').click();const bridgedText=document.getElementById('drawerBody').textContent,bridgedValue=rowValue('1');card('7').click();const deepText=document.getElementById('drawerBody').textContent,deepValue=rowValue('7');return {actual:rootText.includes('5.85 min'),exclusive:rootText.includes('≈ 2.97 min'),cpu:rootText.includes('1.56 min'),rootValue,bridged:bridgedText.includes('≈ 0 ms'),bridgedValue,deep:deepText.includes('≈ 2.80 s'),deepValue,note:Boolean(document.querySelector('#drawerBody .detail-note'))}})()`);
-  if (!elapsedDetails.actual || !elapsedDetails.exclusive || !elapsedDetails.cpu || elapsedDetails.rootValue!=='1.56 min' || !elapsedDetails.bridged || elapsedDetails.bridgedValue!=='50.00 s' || !elapsedDetails.deep || elapsedDetails.deepValue!=='40.00 s' || !elapsedDetails.note) failures.push(`Elapsed-time details or displayed CPU value failed: ${JSON.stringify(elapsedDetails)}`);
+  if (!elapsedDetails.actual || !elapsedDetails.exclusive || !elapsedDetails.cpu || elapsedDetails.rootValue!=='2.97 min' || !elapsedDetails.bridged || elapsedDetails.bridgedValue!=='0 ms' || !elapsedDetails.deep || elapsedDetails.deepValue!=='2.80 s' || !elapsedDetails.note) failures.push(`Elapsed-time details or displayed current-operator estimate failed: ${JSON.stringify(elapsedDetails)}`);
 
   const emptySelection = await evaluate(`(() => {document.querySelector('.node-card[data-subplan="false"][data-node-id="4"]').click();const opened=document.getElementById('detailsDrawer').classList.contains('open');document.getElementById('graph').dispatchEvent(new MouseEvent('click',{bubbles:true}));return {opened,selected:document.querySelectorAll('.node-card.selected').length,drawer:document.getElementById('detailsDrawer').classList.contains('open')}})()`);
   if (!emptySelection.opened || emptySelection.selected || emptySelection.drawer) failures.push(`Empty graph click did not clear selection: ${JSON.stringify(emptySelection)}`);
@@ -258,6 +269,21 @@ try {
   if (interaction.russian !== 'Возврат в меню' || interaction.english !== 'Back to menu' || !interaction.ruFlag || !interaction.enFlag || interaction.languageSaved !== 'en') failures.push(`Language switching failed: ${JSON.stringify(interaction)}`);
   if (interaction.before === interaction.after) failures.push(`Graph zoom failed: ${JSON.stringify(interaction)}`);
   if (!interaction.homeVisible || !interaction.viewerButtonsHidden) failures.push(`Home screen state failed: ${JSON.stringify(interaction)}`);
+  await evaluate(`document.getElementById('pasteBox').value=${JSON.stringify(mixedModeTiming)};document.getElementById('parsePasteBtn').click()`);
+  await retry(async () => {
+    const visible=await evaluate("document.getElementById('viewer').classList.contains('visible') && document.querySelectorAll('.node-card').length===6");
+    if (!visible) throw new Error('Mixed-mode timing plan did not render');
+  });
+  const mixedTiming = await evaluate(`(() => {
+    document.querySelector('[data-metric="time"]').click();
+    const series=nodeId=>{
+      const card=document.querySelector('.node-card[data-subplan="false"][data-node-id="'+nodeId+'"]'),row=document.querySelector('.tree-row[data-id="'+card.dataset.id+'"]');
+      const width=name=>parseFloat(row.querySelector('[data-series="'+name+'"]').style.width)||0;
+      return {elapsed:width('elapsed'),current:width('current'),value:row.querySelector('.tree-value').textContent};
+    };
+    return {root:series('0'),sort:series('1'),inner:series('2'),leaf:series('3'),legend:document.getElementById('metricNotice').textContent};
+  })()`);
+  if (Math.abs(mixedTiming.root.elapsed-100)>0.1 || Math.abs(mixedTiming.root.current-20)>0.1 || mixedTiming.root.value!=='10.00 s' || Math.abs(mixedTiming.sort.elapsed-20)>0.1 || Math.abs(mixedTiming.sort.current-20)>0.1 || mixedTiming.sort.value!=='10.00 s' || Math.abs(mixedTiming.inner.elapsed-60)>0.1 || Math.abs(mixedTiming.inner.current-10)>0.1 || mixedTiming.inner.value!=='5.00 s' || mixedTiming.leaf.value!=='25.00 s' || mixedTiming.legend.includes('CPU')) failures.push(`Mixed Row/Batch elapsed-time estimate failed: ${JSON.stringify(mixedTiming)}`);
   if (plans.length > 10 && (!timeAlerts || !rowAlerts || maxIndent <= 105)) failures.push(`PEV2 alerts or deep indentation missing: ${JSON.stringify({timeAlerts,rowAlerts,maxIndent})}`);
   socket.close();
   if (browserErrors.length) failures.push(...browserErrors.map(x => `Browser exception: ${x}`));

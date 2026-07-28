@@ -85,9 +85,9 @@
     .tree-bar .subtree, .tree-bar .self { position: absolute; z-index: 1; left: 0; top: 0; bottom: 0; min-width: 0; }
     .tree-bar .subtree { opacity: .27; }
     .tree-bar .self { opacity: .92; }
-    .tree-bar .time-elapsed, .tree-bar .time-cpu { position: absolute; z-index: 1; left: 0; top: 0; bottom: 0; min-width: 0; background: var(--time); }
+    .tree-bar .time-elapsed, .tree-bar .time-current { position: absolute; z-index: 1; left: 0; top: 0; bottom: 0; min-width: 0; background: var(--time); }
     .tree-bar .time-elapsed { opacity: .3; }
-    .tree-bar .time-cpu { opacity: .95; }
+    .tree-bar .time-current { opacity: .95; }
     .tree-bar .rows-segment { position: absolute; z-index: 1; top: 0; bottom: 0; min-width: 0; }
     .tree-bar .rows-estimate.severity-0 { background: #34485a; }
     .tree-bar .rows-actual.severity-0 { background: #4fd0a4; }
@@ -309,7 +309,7 @@
         subtree: 'Поддерево', currentNode: 'Текущий оператор', estimate: 'Оценка', actual: 'Факт', noActualRows: 'Фактическое количество строк отсутствует', underestimated: 'Недооценено: фактических строк больше оценки', overestimated: 'Переоценено: фактических строк меньше оценки', closeEstimate: 'Оценка близка к факту', underShort: 'недооценка', overShort: 'переоценка', closeShort: 'до 10×', rowSeverity2: 'ошибка >10×', rowSeverity3: 'ошибка >100×', rowSeverity4: 'ошибка >1000×',
         clickNode: 'Нажмите, чтобы открыть характеристики', rowsEstimateActual: 'Строки: оценка / факт', timeCost: 'Время / стоимость', executions: 'Выполнения', outputColumns: 'Выходные столбцы',
         flagWarning: 'Предупреждение оператора', flagParallel: 'Параллельное выполнение', flagBatch: 'Пакетный режим выполнения', slowNode: 'Медленный оператор: {percent}% общего времени ({time})', badRowEstimate: 'Плохая оценка строк: {direction} в {factor}× (оценка {estimated}, факт {actual})', underDirection: 'недооценка', overDirection: 'переоценка',
-        operator: 'Оператор', primaryMetrics: 'Основные показатели', estimatedRows: 'Оценка строк', actualRows: 'Фактические строки', actualTime: 'Фактическое elapsed-время', exclusiveTime: 'Собственное elapsed-время (расчётное)', exclusiveTimeExplanation: 'Приближение критического пути: elapsed-время оператора минус максимальное elapsed-время среди всех его измеренных потомков. Из-за параллельных и перекрывающихся конвейеров это не точный счётчик SQL Server.', subtreeCost: 'Стоимость поддерева', selfCost: 'Собственная стоимость', mode: 'Режим',
+        operator: 'Оператор', primaryMetrics: 'Основные показатели', estimatedRows: 'Оценка строк', actualRows: 'Фактические строки', actualTime: 'Фактическое elapsed-время', exclusiveTime: 'Время текущего оператора (оценка)', exclusiveTimeExplanation: 'Режимозависимая оценка критического пути: в Row Mode ActualElapsedms считается временем поддерева, а в Batch Mode — временем самого узла. Время Batch-узлов накапливается до ближайшего Row-узла; для перекрывающихся дочерних ветвей используется самая длинная. Параллельное и конвейерное выполнение не позволяет считать это точным измерением.', subtreeCost: 'Стоимость поддерева', selfCost: 'Собственная стоимость', mode: 'Режим',
         ioAndCache: 'Ввод-вывод и кеш', logicalReads: 'Логические чтения', physicalReads: 'Физические чтения', readAhead: 'Упреждающие чтения', lobLogicalReads: 'Логические чтения LOB', lobPhysicalReads: 'Физические чтения LOB', scans: 'Сканирования',
         warnings: 'Предупреждения', object: 'Объект', operandsPredicates: 'Операнды и предикаты', definedValues: 'Определяемые значения', optimizerEstimates: 'Оценки оптимизатора', averageRowSize: 'Средний размер строки', estimatedRowsRead: 'Оценка прочитанных строк', tableCardinality: 'Кардинальность таблицы', showPlanAttributes: 'Атрибуты ShowPlan', threads: 'Потоки', thread: 'Поток', elapsed: 'Время',
         reusableSubplan: 'Повторно используемый подплан {number}', calls: 'вызовов',
@@ -330,7 +330,7 @@
         subtree: 'Subtree', currentNode: 'Current operator', estimate: 'Estimate', actual: 'Actual', noActualRows: 'Actual row count is unavailable', underestimated: 'Underestimated: actual rows exceed the estimate', overestimated: 'Overestimated: actual rows are below the estimate', closeEstimate: 'Estimate is close to actual', underShort: 'underestimated', overShort: 'overestimated', closeShort: 'up to 10×', rowSeverity2: 'error >10×', rowSeverity3: 'error >100×', rowSeverity4: 'error >1000×',
         clickNode: 'Click to open operator details', rowsEstimateActual: 'Rows: estimate / actual', timeCost: 'Time / cost', executions: 'Executions', outputColumns: 'Output columns',
         flagWarning: 'Operator warning', flagParallel: 'Parallel execution', flagBatch: 'Batch execution mode', slowNode: 'Slow operator: {percent}% of total time ({time})', badRowEstimate: 'Bad row estimate: {direction} by {factor}× (estimated {estimated}, actual {actual})', underDirection: 'underestimated', overDirection: 'overestimated',
-        operator: 'Operator', primaryMetrics: 'Primary metrics', estimatedRows: 'Estimated rows', actualRows: 'Actual rows', actualTime: 'Actual elapsed time', exclusiveTime: 'Exclusive elapsed time (derived)', exclusiveTimeExplanation: 'Critical-path approximation: the operator elapsed time minus the greatest elapsed time among all of its measured descendants. Parallel and overlapping pipelines mean this is not an exact SQL Server counter.', subtreeCost: 'Subtree cost', selfCost: 'Self cost', mode: 'Mode',
+        operator: 'Operator', primaryMetrics: 'Primary metrics', estimatedRows: 'Estimated rows', actualRows: 'Actual rows', actualTime: 'Actual elapsed time', exclusiveTime: 'Current-operator time (estimated)', exclusiveTimeExplanation: 'Execution-mode-aware critical-path estimate: ActualElapsedms is treated as subtree time in Row Mode and as node-only time in Batch Mode. Batch-node time accumulates down to the nearest Row node; the longest overlapping child branch is used. Parallel and pipelined execution prevents this from being an exact measurement.', subtreeCost: 'Subtree cost', selfCost: 'Self cost', mode: 'Mode',
         ioAndCache: 'I/O and cache', logicalReads: 'Logical reads', physicalReads: 'Physical reads', readAhead: 'Read-ahead reads', lobLogicalReads: 'LOB logical reads', lobPhysicalReads: 'LOB physical reads', scans: 'Scans',
         warnings: 'Warnings', object: 'Object', operandsPredicates: 'Operands and predicates', definedValues: 'Defined values', optimizerEstimates: 'Optimizer estimates', averageRowSize: 'Average row size', estimatedRowsRead: 'Estimated rows read', tableCardinality: 'Table cardinality', showPlanAttributes: 'ShowPlan attributes', threads: 'Threads', thread: 'Thread', elapsed: 'Elapsed',
         reusableSubplan: 'Reusable subplan {number}', calls: 'calls',
@@ -598,9 +598,18 @@
       node.subtreeSize = 1 + node.children.reduce((s, c) => s + c.subtreeSize, 0);
       node.selfCost = Math.max(0, node.estimatedCost - node.children.reduce((s, c) => s + c.estimatedCost, 0));
       node.elapsed = runtime?.hasElapsed ? runtime.ActualElapsedms : null;
-      const greatestDescendantElapsed = Math.max(0, ...node.children.map(child => child.maxSubtreeElapsed));
-      node.selfTime = node.elapsed === null ? null : Math.max(0, node.elapsed - greatestDescendantElapsed);
-      node.maxSubtreeElapsed = Math.max(node.elapsed || 0, greatestDescendantElapsed);
+      const childCriticalElapsed = Math.max(0, ...node.children.map(child => child.subtreeElapsedEstimate));
+      const executionMode = (runtime?.ActualExecutionMode || node.estimatedMode || 'Row').toLowerCase();
+      if (node.elapsed === null) {
+        node.selfTime = null;
+        node.subtreeElapsedEstimate = childCriticalElapsed;
+      } else if (executionMode === 'batch') {
+        node.selfTime = node.elapsed;
+        node.subtreeElapsedEstimate = node.elapsed + childCriticalElapsed;
+      } else {
+        node.selfTime = Math.max(0, node.elapsed - childCriticalElapsed);
+        node.subtreeElapsedEstimate = Math.max(node.elapsed, childCriticalElapsed);
+      }
       return node;
     }
 
@@ -859,13 +868,13 @@
       const allNodes = flatten(s.roots);
       const nodes = visibleTreeNodes(s.roots);
       const timeMissing = state.metric === 'time' && !allNodes.some(n => n.runtime?.hasElapsed);
-      if (state.metric === 'time') els.metricNotice.innerHTML = `${timeMissing?`<span>${esc(t('timeUnavailable'))}</span>`:''}<span class="rows-legend"><span><i class="metric-dot" style="background:#246653"></i>${esc(t('actualTime'))}</span><span><i class="metric-dot" style="background:var(--time)"></i>CPU</span></span>`;
+      if (state.metric === 'time') els.metricNotice.innerHTML = `${timeMissing?`<span>${esc(t('timeUnavailable'))}</span>`:''}<span class="rows-legend"><span><i class="metric-dot" style="background:#246653"></i>${esc(t('actualTime'))}</span><span><i class="metric-dot" style="background:var(--time)"></i>${esc(t('exclusiveTime'))}</span></span>`;
       else if (state.metric === 'rows') els.metricNotice.innerHTML = `<span class="rows-legend"><span><i class="metric-dot" style="background:#4fd0a4"></i>${esc(t('closeShort'))}</span><span><i class="metric-dot" style="background:#fddb61"></i>${esc(t('rowSeverity2'))}</span><span><i class="metric-dot" style="background:#ee8800"></i>${esc(t('rowSeverity3'))}</span><span><i class="metric-dot" style="background:#ff5964"></i>${esc(t('rowSeverity4'))}</span></span>`;
       else els.metricNotice.textContent = '';
       const maximum = state.metric === 'rows'
         ? Math.max(...allNodes.flatMap(n => [n.estimatedRows, n.runtime?.hasRows ? n.runtime.ActualRows : 0]), 0.0000001)
         : state.metric === 'time'
-          ? Math.max(...allNodes.flatMap(n => [n.runtime?.hasElapsed ? n.runtime.ActualElapsedms : 0, n.runtime?.hasCPU ? n.runtime.ActualCPUms : 0]), 0.0000001)
+          ? Math.max(...allNodes.flatMap(n => [n.runtime?.hasElapsed ? n.runtime.ActualElapsedms : 0, n.selfTime || 0]), 0.0000001)
         : Math.max(...s.roots.map(r => metricValues(r).subtree || 0), ...allNodes.map(n => metricValues(n).subtree || 0), 0.0000001);
       const rows = nodes.map(n => {
         if (state.metric === 'rows') {
@@ -883,14 +892,14 @@
           </div>`;
         }
         if (state.metric === 'time') {
-          const hasElapsed=Boolean(n.runtime?.hasElapsed),hasCPU=Boolean(n.runtime?.hasCPU);
-          const elapsed=hasElapsed?n.runtime.ActualElapsedms:null,cpu=hasCPU?n.runtime.ActualCPUms:null;
-          const elapsedWidth=hasElapsed?Math.min(100,100*elapsed/maximum):0,cpuWidth=hasCPU?Math.min(100,100*cpu/maximum):0;
+          const hasElapsed=Boolean(n.runtime?.hasElapsed),hasCurrent=n.selfTime!==null;
+          const elapsed=hasElapsed?n.runtime.ActualElapsedms:null,current=n.selfTime;
+          const elapsedWidth=hasElapsed?Math.min(100,100*elapsed/maximum):0,currentWidth=hasCurrent?Math.min(100,100*current/maximum):0;
           return `<div class="tree-row ${n.id===state.selectedId?'selected':''}" data-id="${esc(n.id)}" style="--depth:${n.depth}">
             ${treeToggle(n)}
             <div class="tree-name"><span class="tree-op">${n.duplicateGroup?'<span class="call-mark">↗</span>':''}${esc(n.physical)}</span><span class="tree-object">${esc(n.objectLabel || n.logical || '')}</span></div>
-            <div class="tree-metrics"><div class="tree-bar" title="${esc(t('actualTime'))}: ${esc(formatMs(elapsed))}; CPU: ${esc(formatMs(cpu))}">${hasElapsed?`<span class="time-elapsed" data-series="elapsed" style="width:${elapsedWidth}%"></span>`:''}${hasCPU?`<span class="time-cpu" data-series="cpu" style="width:${cpuWidth}%"></span>`:''}</div>
-            <div class="tree-value" title="CPU">${esc(formatMs(cpu))}</div></div>
+            <div class="tree-metrics"><div class="tree-bar" title="${esc(t('actualTime'))}: ${esc(formatMs(elapsed))}; ${esc(t('exclusiveTime'))}: ${esc(formatMs(current))}">${hasElapsed?`<span class="time-elapsed" data-series="elapsed" style="width:${elapsedWidth}%"></span>`:''}${hasCurrent?`<span class="time-current" data-series="current" style="width:${currentWidth}%"></span>`:''}</div>
+            <div class="tree-value" title="${esc(t('exclusiveTime'))}">${esc(formatMs(current))}</div></div>
           </div>`;
         }
         const v = metricValues(n);

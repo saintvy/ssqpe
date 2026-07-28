@@ -53,13 +53,13 @@ SSQPE follows the thresholds used by PEV2 1.23.0:
 - slow operator clock: more than **10% / 40% / 90%** of total execution time gives a yellow / orange / red badge;
 - row-estimation list: an error factor above **10× / 100× / 1000×** gives a yellow / orange / red badge.
 
-For elapsed-time severity, SSQPE compares an operator's exclusive elapsed time with the statement root time. Some SQL Server plans contain runtime row counters but omit `ActualElapsedms`; SSQPE shows `—` instead of inventing a zero duration.
+For elapsed-time severity, SSQPE compares the estimated current-operator time with the statement root time. Some SQL Server plans contain runtime row counters but omit `ActualElapsedms`; SSQPE shows `—` instead of inventing a zero duration.
 
-The Time view in the operator list uses only counters reported by SQL Server. Its dark bar is `ActualElapsedms`, its bright bar is `ActualCPUms`, and the numeric value is CPU time. Both bars share one scale normalized to the largest elapsed or CPU value in the statement, so CPU can extend beyond elapsed in a parallel plan.
+The Time view uses a dark bar for the raw `ActualElapsedms` value and a bright bar plus numeric value for SSQPE's current-operator elapsed-time estimate. Both bars share one scale normalized to the largest value in the statement.
 
 The Rows view uses the largest estimated or actual row count in the statement as 100%. Its dark segment represents the estimate and its bright segment represents the actual count; the extension beyond the shorter segment makes under- and overestimation visible. Green, yellow, orange, and red shades use the same 10× / 100× / 1000× error thresholds as the badges.
 
-SQL Server exposes elapsed time for an operator, but not a reliable exclusive elapsed counter. SSQPE therefore labels its detail-panel approximation as **Exclusive elapsed time (derived)** and calculates it as the operator elapsed time minus the greatest elapsed time among all of its measured descendants. This prevents short or untimed intermediate operators from hiding a longer-running node deeper on the same execution path. This value is used for slow-operator badges, not for the Time list scale. It is a critical-path approximation: parallel workers and streaming pipelines overlap, so it must not be interpreted as an exact duration measured by SQL Server.
+SQL Server reports cumulative node-and-child time in Row Mode but node-only time in Batch Mode. SSQPE builds a mode-aware critical-path estimate: a Row node uses its reported elapsed time as its subtree scope, while a Batch node adds its own reported time to the longest immediate child path until a Row node is reached. Untimed bridge nodes pass through the longest child path. The current-operator estimate is the Batch node's reported time, or a Row node's reported time minus its longest reconstructed child path. Taking the longest branch avoids adding parallel or overlapping children. This is still an approximation rather than an exact duration measured by SQL Server; the raw counter, execution mode, and explanation remain available in operator details.
 
 ## Privacy and local storage
 

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Replaced CPU in the Time list metric with a mode-aware current-operator elapsed-time estimate that handles cumulative Row Mode counters and node-only Batch Mode counters without recursively double-counting Row subtrees.
+
 ## [0.2.3] - 2026-07-28
 
 ### Changed
