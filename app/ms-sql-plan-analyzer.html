@@ -53,7 +53,12 @@
     .resizer { cursor: col-resize; background: transparent; border-left: 1px solid var(--border); border-right: 1px solid transparent; }
     .resizer:hover, .resizer.dragging { background: #263650; border-color: var(--accent); }
     .plan-head { padding: 13px 14px 11px; border-bottom: 1px solid var(--border); }
-    .plan-title { font-size: 14px; font-weight: 720; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .plan-title-row { display: flex; align-items: center; gap: 7px; min-width: 0; }
+    .plan-title { flex: 1; min-width: 0; font-size: 14px; font-weight: 720; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .plan-title-input { flex: 1; min-width: 0; height: 26px; padding: 3px 7px; border: 1px solid var(--accent); border-radius: 5px; outline: none; color: var(--text); background: #10151e; font-size: 13px; font-weight: 650; }
+    .plan-rename-button { flex: 0 0 22px; width: 22px; height: 22px; display: inline-grid; place-items: center; padding: 0; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; }
+    .plan-rename-button:hover, .plan-rename-button:focus-visible { color: var(--text); border-color: #526079; background: var(--surface-3); outline: none; }
+    .plan-rename-button svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
     .plan-meta { color: var(--muted); margin-top: 3px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .plan-stats { display: flex; flex-wrap: wrap; gap: 2px 11px; margin-top: 3px; color: #b4bfce; font-size: 11px; font-variant-numeric: tabular-nums; }
     .plan-stats:empty { display: none; }
@@ -250,7 +255,7 @@
         </div>
         <div class="plan-sidebar hidden" id="planSidebar">
           <div class="plan-head">
-            <div class="plan-title" id="planTitle"></div>
+            <div class="plan-title-row"><div class="plan-title" id="planTitle"></div><input class="plan-title-input hidden" id="planTitleInput" maxlength="240" data-i18n-aria="renamePlan"><button type="button" class="plan-rename-button" id="renamePlanBtn" data-i18n-title="renamePlan" data-i18n-aria="renamePlan"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 11.8 2.5 14l2.2-.5L13 5.2 10.8 3 3 11.8Z"></path><path d="m9.7 4.1 2.2 2.2"></path></svg></button></div>
             <div class="plan-meta" id="planMeta"></div>
             <div class="plan-stats" id="planStats"></div>
           </div>
@@ -332,7 +337,7 @@
         reusableSubplan: 'Повторно используемый подплан {number}', calls: 'вызовов',
         emptyHistory: 'История пока пуста', delete: 'Удалить', historyMeta: '{date} · {statements} запр. · {nodes} узлов',
         xmlParseError: 'XML не удалось разобрать: {details}', expectedShowPlan: 'Ожидался XML-план SQL Server с корнем <ShowPlanXML>.', noStatements: 'В документе не найден ни один statement или QueryPlan.',
-        defaultPlan: 'План SQL Server', pastedPlan: 'Вставленный план', planOpened: 'План открыт: {nodes} операторов', planSaveFailed: 'План открыт, но сохранить историю не удалось', pasteFirst: 'Сначала вставьте ShowPlan XML', fileTooLarge: 'Файл больше 30 МБ; откройте более компактный план.', openFailed: 'Не удалось открыть план',
+        defaultPlan: 'План SQL Server', pastedPlan: 'Вставленный план', planOpened: 'План открыт: {nodes} операторов', planSaveFailed: 'План открыт, но сохранить историю не удалось', renamePlan: 'Изменить название плана', planRenamed: 'Название плана изменено', planRenameFailed: 'Название изменено, но обновить историю не удалось', pasteFirst: 'Сначала вставьте ShowPlan XML', fileTooLarge: 'Файл больше 30 МБ; откройте более компактный план.', openFailed: 'Не удалось открыть план',
         clearConfirm: 'Удалить все сохранённые планы? Это действие нельзя отменить.', historyCleared: 'История очищена без возможности восстановления',
         minute: 'мин', second: 'с', millisecond: 'мс', gigabyte: 'ГБ', megabyte: 'МБ', kilobyte: 'КБ', missing: '—'
       },
@@ -353,7 +358,7 @@
         reusableSubplan: 'Reusable subplan {number}', calls: 'calls',
         emptyHistory: 'History is empty', delete: 'Delete', historyMeta: '{date} · {statements} queries · {nodes} nodes',
         xmlParseError: 'Could not parse XML: {details}', expectedShowPlan: 'Expected a SQL Server XML plan with a <ShowPlanXML> root.', noStatements: 'No statement or QueryPlan was found in the document.',
-        defaultPlan: 'SQL Server plan', pastedPlan: 'Pasted plan', planOpened: 'Plan opened: {nodes} operators', planSaveFailed: 'The plan opened, but history could not be saved', pasteFirst: 'Paste ShowPlan XML first', fileTooLarge: 'The file is larger than 30 MB; open a more compact plan.', openFailed: 'Could not open the plan',
+        defaultPlan: 'SQL Server plan', pastedPlan: 'Pasted plan', planOpened: 'Plan opened: {nodes} operators', planSaveFailed: 'The plan opened, but history could not be saved', renamePlan: 'Rename plan', planRenamed: 'Plan renamed', planRenameFailed: 'The plan was renamed, but history could not be updated', pasteFirst: 'Paste ShowPlan XML first', fileTooLarge: 'The file is larger than 30 MB; open a more compact plan.', openFailed: 'Could not open the plan',
         clearConfirm: 'Delete every saved plan? This cannot be undone.', historyCleared: 'History was permanently cleared',
         minute: 'min', second: 's', millisecond: 'ms', gigabyte: 'GB', megabyte: 'MB', kilobyte: 'KB', missing: '—'
       }
@@ -375,7 +380,7 @@
     const $ = (s, root = document) => root.querySelector(s);
     const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
     const els = Object.fromEntries([
-      'fileInput','menuBtn','historyBtn','historyCount','languageSelect','languageFlag','chooseBtn','planNameInput','pasteBox','parsePasteBtn','dropCard','emptyState','viewer','homeSidebar','homeHistoryList','homeClearHistoryBtn','planSidebar','planTitle','planMeta','planStats','statementTabs','metricSwitch','metricNotice','expandAllBtn','tree','main','canvasWrap','graphStage','graph','queryBtn','rawPlanBtn','fitBtn','zoomLabel','detailsDrawer','detailsHandle','hideDetailsCheck','drawerTitle','drawerSubtitle','drawerBody','closeDetails','historyPanel','historyList','clearHistoryBtn','closeHistory','overlay','queryModal','queryText','textModalTitle','copyTextBtn','closeQuery','toast','resizer'
+      'fileInput','menuBtn','historyBtn','historyCount','languageSelect','languageFlag','chooseBtn','planNameInput','pasteBox','parsePasteBtn','dropCard','emptyState','viewer','homeSidebar','homeHistoryList','homeClearHistoryBtn','planSidebar','planTitle','planTitleInput','renamePlanBtn','planMeta','planStats','statementTabs','metricSwitch','metricNotice','expandAllBtn','tree','main','canvasWrap','graphStage','graph','queryBtn','rawPlanBtn','fitBtn','zoomLabel','detailsDrawer','detailsHandle','hideDetailsCheck','drawerTitle','drawerSubtitle','drawerBody','closeDetails','historyPanel','historyList','clearHistoryBtn','closeHistory','overlay','queryModal','queryText','textModalTitle','copyTextBtn','closeQuery','toast','resizer'
     ].map(id => [id, document.getElementById(id)]));
 
     const state = {
@@ -392,7 +397,8 @@
       detailsLocked: false,
       collapsedIds: new Set(),
       dragMoved: false,
-      detailCopies: new Map()
+      detailCopies: new Map(),
+      renamingPlan: false
     };
 
     function applyI18n() {
@@ -867,6 +873,7 @@
     function renderHeader() {
       const p = state.plan;
       els.planTitle.textContent = p.name;
+      els.planTitle.title = p.name;
       els.planMeta.innerHTML = `${esc(p.actual ? t('actualPlan') : t('estimatedPlan'))} · ${p.statements.length} ${esc(t('statementsShort'))} · ${p.nodeCount} ${esc(t('nodesShort'))}${p.build ? ` · <span title="${esc(t('buildHint'))}">${esc(t('sqlServerBuild'))} ${esc(p.build)}</span>` : ''}`;
       const stats = [
         [t('totalExecutionTime'), p.summary.executionTimeMs === null ? null : formatMs(p.summary.executionTimeMs), t('totalExecutionTimeHint')],
@@ -874,6 +881,39 @@
         [t('peakQueryMemory'), p.summary.peakMemoryKb === null ? null : formatBytes(p.summary.peakMemoryKb), t('peakQueryMemoryHint')]
       ].filter(([,value]) => value !== null);
       els.planStats.innerHTML = stats.map(([label,value,title]) => `<span class="plan-stat"${title ? ` title="${esc(title)}"` : ''}><b>${esc(label)}:</b> ${esc(value)}</span>`).join('');
+    }
+
+    function beginPlanRename() {
+      if (!state.plan || state.renamingPlan) return;
+      state.renamingPlan = true;
+      els.planTitleInput.value = state.plan.name;
+      els.planTitle.classList.add('hidden');
+      els.renamePlanBtn.classList.add('hidden');
+      els.planTitleInput.classList.remove('hidden');
+      els.planTitleInput.focus();
+      els.planTitleInput.select();
+    }
+
+    async function finishPlanRename(save) {
+      if (!state.renamingPlan) return;
+      const nextName = els.planTitleInput.value.trim();
+      state.renamingPlan = false;
+      els.planTitleInput.classList.add('hidden');
+      els.planTitle.classList.remove('hidden');
+      els.renamePlanBtn.classList.remove('hidden');
+      if (!save || !nextName || !state.plan || nextName === state.plan.name) return;
+      state.plan.name = nextName;
+      state.currentFile = nextName;
+      renderHeader();
+      try {
+        const id = await hashText(state.currentXml);
+        const saved = (await historyStore.list()).find(item => item.id === id);
+        if (saved) await historyStore.save({...saved,name:nextName});
+        await refreshHistory();
+        toast(t('planRenamed'));
+      } catch {
+        toast(t('planRenameFailed'),true);
+      }
     }
 
     function renderTabs() {
@@ -1306,6 +1346,7 @@
     }
 
     function showHome() {
+      finishPlanRename(false);
       state.screen = 'home';
       els.viewer.classList.remove('visible');
       els.emptyState.classList.remove('hidden');
@@ -1401,6 +1442,9 @@
     }
 
     els.chooseBtn.onclick = () => els.fileInput.click();
+    els.renamePlanBtn.onclick = beginPlanRename;
+    els.planTitleInput.addEventListener('blur',()=>finishPlanRename(true));
+    els.planTitleInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();els.planTitleInput.blur();}else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();finishPlanRename(false);els.renamePlanBtn.focus();}});
     els.menuBtn.onclick = showHome;
     els.fileInput.onchange = () => { readFile(els.fileInput.files[0]); els.fileInput.value=''; };
     els.parsePasteBtn.onclick = async () => { const xml=els.pasteBox.value.trim(); if(!xml)return toast(t('pasteFirst'),true); const name=els.planNameInput.value.trim()||`${t('pastedPlan')}.sqlplan`; try{await loadXml(xml,name,true);}catch(err){toast(err.message,true);} };

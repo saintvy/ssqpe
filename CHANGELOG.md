@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Added inline plan renaming from the viewer header, with saved-history synchronization.
+
 ### Changed
 
 - Reusable subplans are anchored near the midpoint of their call sites and packed into shared rows when their zones do not overlap.
