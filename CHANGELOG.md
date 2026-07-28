@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Added a Show Raw Plan viewer for the complete source XML and Copy controls to both raw-plan and SQL-text viewers, including an offline clipboard fallback.
+
+### Changed
+
+- Replaced the Metric label with an Expand all control for collapsed operator-list subtrees.
+- Text viewers now preserve long lines and expose horizontal scrolling instead of wrapping them.
+
 ### Fixed
 
 - Show SQL Text now displays every `StatementText` from the current ShowPlan batch instead of stopping after the selected statement; long batches remain fully scrollable.

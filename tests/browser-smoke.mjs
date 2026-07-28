@@ -56,7 +56,7 @@ const mixedModeTiming = `<?xml version="1.0"?>
 </Merge></RelOp></Sort></RelOp>
 <RelOp NodeId="5" PhysicalOp="Clustered Index Scan" LogicalOp="Clustered Index Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.2" EstimatedExecutionMode="Row"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1" ActualElapsedms="5000" ActualCPUms="0" ActualExecutionMode="Row"/></RunTimeInformation><IndexScan/></RelOp>
 </Merge></RelOp></QueryPlan></StmtSimple></Statements></Batch></BatchSequence></ShowPlanXML>`;
-const longSqlText = `SELECT\n${Array.from({length:700},(_,index)=>`  CASE WHEN source.[Column${index}] IS NULL THEN ${index} ELSE source.[Column${index}] END AS [Result${index}]`).join(',\n')}\nFROM dbo.Source AS source;`;
+const longSqlText = `SELECT /* ${'horizontal-scroll-marker-'.repeat(80)} */\n${Array.from({length:700},(_,index)=>`  CASE WHEN source.[Column${index}] IS NULL THEN ${index} ELSE source.[Column${index}] END AS [Result${index}]`).join(',\n')}\nFROM dbo.Source AS source;`;
 const longSqlTail = `SELECT COUNT_BIG(*) AS [Tail marker] FROM dbo.Source;`;
 const xmlAttr = value => value.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('\r','&#13;').replaceAll('\n','&#10;');
 const longSqlPlan = `<?xml version="1.0"?><ShowPlanXML xmlns="http://schemas.microsoft.com/sqlserver/2004/07/showplan" Version="1.0" Build="test"><BatchSequence><Batch><Statements><StmtSimple StatementId="1" StatementType="SELECT" StatementText="${xmlAttr(longSqlText)}"><QueryPlan><RelOp NodeId="0" PhysicalOp="Constant Scan" LogicalOp="Constant Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.01"><ConstantScan/></RelOp></QueryPlan></StmtSimple><StmtSimple StatementId="2" StatementType="SELECT" StatementText="${xmlAttr(longSqlTail)}"><QueryPlan><RelOp NodeId="1" PhysicalOp="Constant Scan" LogicalOp="Constant Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.01"><ConstantScan/></RelOp></QueryPlan></StmtSimple></Statements></Batch></BatchSequence></ShowPlanXML>`;
@@ -190,6 +190,8 @@ try {
   const collapse = {...collapseBefore,...collapseMiddle,...collapseAfter};
   if (!(collapse.collapsed < collapse.before && collapse.expanded === collapse.before && collapse.selectedBefore===1 && collapse.selectedCollapsed===1 && collapse.selectedExpanded===1)) failures.push(`Tree collapse or toggle selection isolation failed: ${JSON.stringify(collapse)}`);
   if (!collapseBefore.hitToggle || !collapseMiddle.hitToggle) failures.push(`Tree toggle is covered in pointer hit-testing: ${JSON.stringify(collapse)}`);
+  const expandAll = await evaluate(`(() => {const button=document.getElementById('expandAllBtn'),before=document.querySelectorAll('.tree-row').length;document.querySelector('.tree-row .tree-toggle').click();const collapsed=document.querySelectorAll('.tree-row').length,enabled=!button.disabled,label=button.textContent,metricLabel=Boolean(document.querySelector('.metric-switch .label'));button.click();return {before,collapsed,expanded:document.querySelectorAll('.tree-row').length,enabled,disabledAfter:button.disabled,label,metricLabel}})()`);
+  if (!(expandAll.collapsed<expandAll.before && expandAll.expanded===expandAll.before && expandAll.enabled && expandAll.disabledAfter) || expandAll.label!=='Expand all' || expandAll.metricLabel) failures.push(`Expand-all tree control failed: ${JSON.stringify(expandAll)}`);
 
   const rowsMetric = await evaluate(`(() => {
     document.querySelector('[data-metric="rows"]').click();
@@ -307,13 +309,21 @@ try {
   await retry(async () => {
     if (!await evaluate("document.getElementById('viewer').classList.contains('visible')")) throw new Error('Long-SQL plan did not render');
   });
-  const longQuery = await evaluate(`(() => {
+  const textViewers = await evaluate(`(async() => {
+    Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{window.__copiedText=value}}});
     document.getElementById('queryBtn').click();
     const modal=document.getElementById('queryModal'),text=document.getElementById('queryText'),card=modal.querySelector('.modal-card'),rect=card.getBoundingClientRect();
-    text.scrollTop=text.scrollHeight;
-    return {length:text.textContent.length,exact:text.textContent===${JSON.stringify(longSqlBatch)},hasTail:text.textContent.endsWith(${JSON.stringify(longSqlTail)}),tabs:document.querySelectorAll('.statement-tab').length,scrollable:text.scrollHeight>text.clientHeight,atEnd:Math.abs(text.scrollHeight-text.clientHeight-text.scrollTop)<2,insideViewport:rect.top>=0&&rect.bottom<=innerHeight,overflow:getComputedStyle(text).overflowY};
+    text.scrollTop=text.scrollHeight;text.scrollLeft=text.scrollWidth;
+    document.getElementById('copyTextBtn').click();await new Promise(resolve=>setTimeout(resolve,0));
+    const query={length:text.textContent.length,exact:text.textContent===${JSON.stringify(longSqlBatch)},hasTail:text.textContent.endsWith(${JSON.stringify(longSqlTail)}),tabs:document.querySelectorAll('.statement-tab').length,vertical:text.scrollHeight>text.clientHeight,horizontal:text.scrollWidth>text.clientWidth,atBottom:Math.abs(text.scrollHeight-text.clientHeight-text.scrollTop)<2,atRight:Math.abs(text.scrollWidth-text.clientWidth-text.scrollLeft)<2,insideViewport:rect.top>=0&&rect.bottom<=innerHeight,overflowX:getComputedStyle(text).overflowX,copied:window.__copiedText===text.textContent,title:document.getElementById('textModalTitle').textContent,copyLabel:document.getElementById('copyTextBtn').textContent};
+    document.getElementById('rawPlanBtn').click();text.scrollLeft=text.scrollWidth;window.__copiedText='';document.getElementById('copyTextBtn').click();await new Promise(resolve=>setTimeout(resolve,0));
+    Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw new Error('permission denied')}}});window.__fallbackCopied='';document.execCommand=command=>{window.__fallbackCopied=document.activeElement?.value||'';return command==='copy'};document.getElementById('copyTextBtn').click();await new Promise(resolve=>setTimeout(resolve,0));
+    const raw={exact:text.textContent===${JSON.stringify(longSqlPlan)},horizontal:text.scrollWidth>text.clientWidth,scrolled:text.scrollLeft>0,copied:window.__copiedText===text.textContent,fallbackCopied:window.__fallbackCopied===text.textContent,title:document.getElementById('textModalTitle').textContent,button:document.getElementById('rawPlanBtn').textContent,adjacent:document.getElementById('queryBtn').nextElementSibling===document.getElementById('rawPlanBtn')};
+    return {query,raw};
   })()`);
-  if (!longQuery.exact || longQuery.length!==longSqlBatch.length || !longQuery.hasTail || longQuery.tabs!==2 || !longQuery.scrollable || !longQuery.atEnd || !longQuery.insideViewport || !['auto','scroll'].includes(longQuery.overflow)) failures.push(`Long multi-statement SQL batch is truncated or inaccessible: ${JSON.stringify(longQuery)}`);
+  const longQuery=textViewers.query,rawPlan=textViewers.raw;
+  if (!longQuery.exact || longQuery.length!==longSqlBatch.length || !longQuery.hasTail || longQuery.tabs!==2 || !longQuery.vertical || !longQuery.horizontal || !longQuery.atBottom || !longQuery.atRight || !longQuery.insideViewport || !['auto','scroll'].includes(longQuery.overflowX) || !longQuery.copied || longQuery.title!=='Query text' || longQuery.copyLabel!=='Copy') failures.push(`Long SQL batch viewer failed: ${JSON.stringify(longQuery)}`);
+  if (!rawPlan.exact || !rawPlan.horizontal || !rawPlan.scrolled || !rawPlan.copied || !rawPlan.fallbackCopied || rawPlan.title!=='Raw XML plan' || rawPlan.button!=='Show raw plan' || !rawPlan.adjacent) failures.push(`Raw plan viewer failed: ${JSON.stringify(rawPlan)}`);
   if (plans.length > 10 && (!timeAlerts || !rowAlerts || maxIndent <= 105)) failures.push(`PEV2 alerts or deep indentation missing: ${JSON.stringify({timeAlerts,rowAlerts,maxIndent})}`);
   socket.close();
   if (browserErrors.length) failures.push(...browserErrors.map(x => `Browser exception: ${x}`));

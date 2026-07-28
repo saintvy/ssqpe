@@ -41,9 +41,11 @@ No web server is required. The HTML file can be copied to an offline workstation
 | Pan the operator list horizontally | Drag with the left mouse button |
 | Scroll the operator list vertically | Use the mouse wheel |
 | Collapse or expand a list subtree | Select the chevron beside its parent operator |
+| Expand every list subtree | Select **Expand all** above the operator list |
 | Inspect an operator | Click its graph node or list row; each view centers its camera on the matching operator in the other view |
 | Expand long operator metadata | Select the Operands and predicates, Output columns, or Defined values heading in the details drawer |
-| View SQL text | Select **Show SQL text** to display every statement from the current ShowPlan batch in source order |
+| View or copy SQL text | Select **Show SQL text** to display every statement from the current ShowPlan batch in source order, then select **Copy** if needed |
+| View or copy ShowPlan XML | Select **Show raw plan** to display the complete source XML, then select **Copy** if needed |
 | Clear the selected operator | Click it again or click empty graph space |
 | Keep details closed | Select **Keep details hidden** in the details drawer |
 | Reset graph position and zoom | Select **Reset view** |
@@ -68,6 +70,8 @@ SQL Server reports cumulative node-and-child time in Row Mode but node-only time
 Plan parsing happens entirely in the browser. SSQPE makes no network requests and does not upload query text, object names, predicates, or runtime statistics.
 
 Opened plans and the selected interface language are stored in the browser's IndexedDB/local storage for the local HTML origin. Use **Clear** on the history screen to remove saved plans.
+
+SQL and raw-plan viewers preserve long lines and provide horizontal and vertical scrolling instead of wrapping their content.
 
 Execution plans can contain sensitive SQL text, database names, schema names, object names, literals, and operational statistics. Review a plan before sharing it or attaching it to a public issue.
 
