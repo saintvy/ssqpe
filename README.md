@@ -43,6 +43,7 @@ No web server is required. The HTML file can be copied to an offline workstation
 | Collapse or expand a list subtree | Select the chevron beside its parent operator |
 | Inspect an operator | Click its graph node or list row; each view centers its camera on the matching operator in the other view |
 | Expand long operator metadata | Select the Operands and predicates, Output columns, or Defined values heading in the details drawer |
+| View SQL text | Select **Show SQL text** to display every statement from the current ShowPlan batch in source order |
 | Clear the selected operator | Click it again or click empty graph space |
 | Keep details closed | Select **Keep details hidden** in the details drawer |
 | Reset graph position and zoom | Select **Reset view** |

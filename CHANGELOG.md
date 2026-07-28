@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Show SQL Text now displays every `StatementText` from the current ShowPlan batch instead of stopping after the selected statement; long batches remain fully scrollable.
+
 ## [0.2.5] - 2026-07-28
 
 ### Added

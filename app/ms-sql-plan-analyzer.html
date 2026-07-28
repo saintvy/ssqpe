@@ -657,7 +657,7 @@
       });
     }
 
-    function statementForPlan(planEl, index) {
+    function statementForPlan(planEl, index, batchText = '') {
       const stmt = nearestStatement(planEl);
       const queryPlan = planEl;
       const topRelOps = all(queryPlan, 'RelOp').filter(r => nearestAncestor(r, 'QueryPlan') === queryPlan && !nearestAncestor(r, 'RelOp'));
@@ -666,6 +666,7 @@
         index,
         type: stmt ? attr(stmt, 'StatementType', lname(stmt).replace(/^Stmt/, '')) : '',
         text: stmt ? attr(stmt, 'StatementText') : '',
+        batchText,
         id: stmt ? attr(stmt, 'StatementId', String(index + 1)) : String(index + 1),
         subtreeCost: stmt ? num(attr(stmt, 'StatementSubTreeCost')) : (roots[0]?.estimatedCost || 0),
         roots,
@@ -697,16 +698,24 @@
       if (!root || lname(root) !== 'ShowPlanXML') throw new Error(t('expectedShowPlan'));
       const queryPlans = all(xml, 'QueryPlan').filter(q => !nearestAncestor(q, 'QueryPlan'));
       const statementEls = Array.from(xml.getElementsByTagNameNS('*','*')).filter(el => lname(el).startsWith('Stmt'));
+      const batches = all(xml, 'Batch').filter(batch => !nearestAncestor(batch, 'Batch'));
+      const batchTexts = new Map(batches.map(batch => [batch, statementEls
+        .filter(stmt => nearestAncestor(stmt, 'Batch') === batch)
+        .map(stmt => attr(stmt, 'StatementText'))
+        .filter(text => text.trim())
+        .join('\n\n')]));
+      const looseText = statementEls.map(stmt => attr(stmt, 'StatementText')).filter(text => text.trim()).join('\n\n');
+      const batchTextFor = stmt => stmt ? (batchTexts.get(nearestAncestor(stmt, 'Batch')) || attr(stmt, 'StatementText')) : looseText;
       const statements = [];
       statementEls.forEach(stmt => {
         const ownedPlans = queryPlans.filter(q => nearestStatement(q) === stmt);
         if (ownedPlans.length) {
-          ownedPlans.forEach(q => statements.push(statementForPlan(q, statements.length)));
+          ownedPlans.forEach(q => statements.push(statementForPlan(q, statements.length, batchTextFor(stmt))));
         } else {
-          statements.push({ index: statements.length, type: attr(stmt,'StatementType',lname(stmt).replace(/^Stmt/,'')), text: attr(stmt,'StatementText'), id: attr(stmt,'StatementId',String(statements.length+1)), subtreeCost: num(attr(stmt,'StatementSubTreeCost')), roots: [], queryPlan:{}, memoryGrant:{}, optimizerStats:[], missingIndexes:[], subplans:[] });
+          statements.push({ index: statements.length, type: attr(stmt,'StatementType',lname(stmt).replace(/^Stmt/,'')), text: attr(stmt,'StatementText'), batchText: batchTextFor(stmt), id: attr(stmt,'StatementId',String(statements.length+1)), subtreeCost: num(attr(stmt,'StatementSubTreeCost')), roots: [], queryPlan:{}, memoryGrant:{}, optimizerStats:[], missingIndexes:[], subplans:[] });
         }
       });
-      queryPlans.filter(q => !nearestStatement(q)).forEach(q => statements.push(statementForPlan(q, statements.length)));
+      queryPlans.filter(q => !nearestStatement(q)).forEach(q => statements.push(statementForPlan(q, statements.length, looseText)));
       if (!statements.length) throw new Error(t('noStatements'));
       const plan = {
         name: fileName.replace(/\.(sqlplan|sqplan|xml)$/i, ''),
@@ -1059,10 +1068,11 @@
       els.graph.innerHTML=`${zones}<svg class="edges" width="${layout.width}" height="${layout.height}" aria-hidden="true">${edges.join('')}</svg>${mainCards}${subCards}`;
       const selected=$(`.node-card[data-id="${CSS.escape(state.selectedId || '')}"]`,els.graph);
       if(selected) selected.classList.add('expanded');
-      const meaningfulQuery = Boolean(s.text && !/^Statement\d+$/i.test(s.text.trim()));
+      const queryText = s.batchText || s.text;
+      const meaningfulQuery = Boolean(queryText && !/^Statement\d+$/i.test(queryText.trim()));
       els.queryBtn.disabled = !meaningfulQuery;
       els.queryBtn.textContent = meaningfulQuery ? t('showQuery') : t('queryUnavailable');
-      els.queryBtn.title = meaningfulQuery ? s.text : t('queryUnavailable');
+      els.queryBtn.title = meaningfulQuery ? shortText(queryText,240) : t('queryUnavailable');
     }
 
     function detailRows(entries, formatter = v => v) {
@@ -1237,7 +1247,7 @@
     els.hideDetailsCheck.onchange=()=>setDetailsLocked(els.hideDetailsCheck.checked);
     els.detailsHandle.onclick=()=>{setDetailsLocked(false);const n=selectedNode();if(n){renderDetails(n);els.detailsDrawer.classList.add('open');}};
     els.fitBtn.onclick=()=>{state.zoom=1;updateZoom();const rootId=currentStatement()?.roots[0]?.id;if(rootId)requestAnimationFrame(()=>centerGraphNode(rootId));else els.canvasWrap.scrollTo({left:0,top:0,behavior:'smooth'});};
-    els.queryBtn.onclick=()=>{if(els.queryBtn.disabled)return;els.queryText.textContent=currentStatement()?.text||t('queryUnavailable');els.queryModal.classList.add('open');};
+    els.queryBtn.onclick=()=>{if(els.queryBtn.disabled)return;const s=currentStatement();els.queryText.textContent=s?.batchText||s?.text||t('queryUnavailable');els.queryModal.classList.add('open');};
     els.closeQuery.onclick=()=>els.queryModal.classList.remove('open');
     els.queryModal.addEventListener('click',e=>{if(e.target===els.queryModal)els.queryModal.classList.remove('open');});
     els.historyBtn.onclick=()=>openHistory(true); els.closeHistory.onclick=els.overlay.onclick=()=>openHistory(false);

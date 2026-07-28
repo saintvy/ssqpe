@@ -56,6 +56,11 @@ const mixedModeTiming = `<?xml version="1.0"?>
 </Merge></RelOp></Sort></RelOp>
 <RelOp NodeId="5" PhysicalOp="Clustered Index Scan" LogicalOp="Clustered Index Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.2" EstimatedExecutionMode="Row"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1" ActualElapsedms="5000" ActualCPUms="0" ActualExecutionMode="Row"/></RunTimeInformation><IndexScan/></RelOp>
 </Merge></RelOp></QueryPlan></StmtSimple></Statements></Batch></BatchSequence></ShowPlanXML>`;
+const longSqlText = `SELECT\n${Array.from({length:700},(_,index)=>`  CASE WHEN source.[Column${index}] IS NULL THEN ${index} ELSE source.[Column${index}] END AS [Result${index}]`).join(',\n')}\nFROM dbo.Source AS source;`;
+const longSqlTail = `SELECT COUNT_BIG(*) AS [Tail marker] FROM dbo.Source;`;
+const xmlAttr = value => value.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('\r','&#13;').replaceAll('\n','&#10;');
+const longSqlPlan = `<?xml version="1.0"?><ShowPlanXML xmlns="http://schemas.microsoft.com/sqlserver/2004/07/showplan" Version="1.0" Build="test"><BatchSequence><Batch><Statements><StmtSimple StatementId="1" StatementType="SELECT" StatementText="${xmlAttr(longSqlText)}"><QueryPlan><RelOp NodeId="0" PhysicalOp="Constant Scan" LogicalOp="Constant Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.01"><ConstantScan/></RelOp></QueryPlan></StmtSimple><StmtSimple StatementId="2" StatementType="SELECT" StatementText="${xmlAttr(longSqlTail)}"><QueryPlan><RelOp NodeId="1" PhysicalOp="Constant Scan" LogicalOp="Constant Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.01"><ConstantScan/></RelOp></QueryPlan></StmtSimple></Statements></Batch></BatchSequence></ShowPlanXML>`;
+const longSqlBatch = `${longSqlText}\n\n${longSqlTail}`;
 const profile = mkdtempSync(join(tmpdir(), 'sql-plan-smoke-'));
 const port = 9300 + Math.floor(Math.random() * 500);
 const browser = spawn(browserPath, [
@@ -298,6 +303,17 @@ try {
     return {root:series('0'),sort:series('1'),inner:series('2'),leaf:series('3'),legend:document.getElementById('metricNotice').textContent};
   })()`);
   if (Math.abs(mixedTiming.root.elapsed-100)>0.1 || Math.abs(mixedTiming.root.current-20)>0.1 || mixedTiming.root.value!=='10.00 s' || Math.abs(mixedTiming.sort.elapsed-20)>0.1 || Math.abs(mixedTiming.sort.current-20)>0.1 || mixedTiming.sort.value!=='10.00 s' || Math.abs(mixedTiming.inner.elapsed-60)>0.1 || Math.abs(mixedTiming.inner.current-10)>0.1 || mixedTiming.inner.value!=='5.00 s' || mixedTiming.leaf.value!=='25.00 s' || mixedTiming.legend.includes('CPU')) failures.push(`Mixed Row/Batch elapsed-time estimate failed: ${JSON.stringify(mixedTiming)}`);
+  await evaluate(`document.getElementById('menuBtn').click();document.getElementById('pasteBox').value=${JSON.stringify(longSqlPlan)};document.getElementById('parsePasteBtn').click()`);
+  await retry(async () => {
+    if (!await evaluate("document.getElementById('viewer').classList.contains('visible')")) throw new Error('Long-SQL plan did not render');
+  });
+  const longQuery = await evaluate(`(() => {
+    document.getElementById('queryBtn').click();
+    const modal=document.getElementById('queryModal'),text=document.getElementById('queryText'),card=modal.querySelector('.modal-card'),rect=card.getBoundingClientRect();
+    text.scrollTop=text.scrollHeight;
+    return {length:text.textContent.length,exact:text.textContent===${JSON.stringify(longSqlBatch)},hasTail:text.textContent.endsWith(${JSON.stringify(longSqlTail)}),tabs:document.querySelectorAll('.statement-tab').length,scrollable:text.scrollHeight>text.clientHeight,atEnd:Math.abs(text.scrollHeight-text.clientHeight-text.scrollTop)<2,insideViewport:rect.top>=0&&rect.bottom<=innerHeight,overflow:getComputedStyle(text).overflowY};
+  })()`);
+  if (!longQuery.exact || longQuery.length!==longSqlBatch.length || !longQuery.hasTail || longQuery.tabs!==2 || !longQuery.scrollable || !longQuery.atEnd || !longQuery.insideViewport || !['auto','scroll'].includes(longQuery.overflow)) failures.push(`Long multi-statement SQL batch is truncated or inaccessible: ${JSON.stringify(longQuery)}`);
   if (plans.length > 10 && (!timeAlerts || !rowAlerts || maxIndent <= 105)) failures.push(`PEV2 alerts or deep indentation missing: ${JSON.stringify({timeAlerts,rowAlerts,maxIndent})}`);
   socket.close();
   if (browserErrors.length) failures.push(...browserErrors.map(x => `Browser exception: ${x}`));
