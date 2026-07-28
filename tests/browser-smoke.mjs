@@ -45,6 +45,14 @@ const repeatedSubplan = `<?xml version="1.0"?>
 <RelOp NodeId="5" PhysicalOp="Compute Scalar" LogicalOp="Compute Scalar" EstimateRows="1" EstimatedTotalSubtreeCost="0.4"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1"/></RunTimeInformation><ComputeScalar><RelOp NodeId="8" PhysicalOp="Stream Aggregate" LogicalOp="Aggregate" EstimateRows="1" EstimatedTotalSubtreeCost="0.3"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1" ActualElapsedms="800" ActualCPUms="300"/></RunTimeInformation><StreamAggregate><RelOp NodeId="11" PhysicalOp="Filter" LogicalOp="Filter" EstimateRows="1" EstimatedTotalSubtreeCost="0.2"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1" ActualElapsedms="200" ActualCPUms="100"/></RunTimeInformation><Filter><RelOp NodeId="12" PhysicalOp="Index Scan" LogicalOp="Index Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.1"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1" ActualElapsedms="700" ActualCPUms="200"/></RunTimeInformation><IndexScan><Object Schema="[dbo]" Table="[A]" Index="[IX_A]"/></IndexScan></RelOp></Filter></RelOp></StreamAggregate></RelOp></ComputeScalar></RelOp>
 <RelOp NodeId="6" PhysicalOp="Index Seek" LogicalOp="Index Seek" EstimateRows="1" EstimatedTotalSubtreeCost="0.4"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1"/></RunTimeInformation><IndexScan><Object Schema="[dbo]" Table="[B]" Index="[IX_B]"/></IndexScan></RelOp>
 </NestedLoops></RelOp>
+<RelOp NodeId="13" PhysicalOp="Hash Match" LogicalOp="Inner Join" EstimateRows="1" EstimatedTotalSubtreeCost="0.8"><Hash>
+<RelOp NodeId="14" PhysicalOp="Index Scan" LogicalOp="Index Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.3"><IndexScan><Object Schema="[dbo]" Table="[C]" Index="[IX_C]"/></IndexScan></RelOp>
+<RelOp NodeId="15" PhysicalOp="Index Scan" LogicalOp="Index Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.2"><IndexScan><Object Schema="[dbo]" Table="[D]" Index="[IX_D]"/></IndexScan></RelOp>
+</Hash></RelOp>
+<RelOp NodeId="16" PhysicalOp="Hash Match" LogicalOp="Inner Join" EstimateRows="1" EstimatedTotalSubtreeCost="0.8"><Hash>
+<RelOp NodeId="17" PhysicalOp="Index Scan" LogicalOp="Index Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.3"><IndexScan><Object Schema="[dbo]" Table="[C]" Index="[IX_C]"/></IndexScan></RelOp>
+<RelOp NodeId="18" PhysicalOp="Index Scan" LogicalOp="Index Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.2"><IndexScan><Object Schema="[dbo]" Table="[D]" Index="[IX_D]"/></IndexScan></RelOp>
+</Hash></RelOp>
 </Concatenation></RelOp></QueryPlan></StmtSimple></Statements></Batch></BatchSequence></ShowPlanXML>`;
 const mixedModeTiming = `<?xml version="1.0"?>
 <ShowPlanXML xmlns="http://schemas.microsoft.com/sqlserver/2004/07/showplan" Version="1.0" Build="test"><BatchSequence><Batch><Statements>
@@ -172,12 +180,12 @@ try {
   await evaluate(`document.getElementById('planNameInput').value='Smoke custom name'; document.getElementById('pasteBox').value = ${JSON.stringify(repeatedSubplan)}; document.getElementById('parsePasteBtn').click()`);
   await retry(async () => {
     const snapshot = await evaluate("({title:document.getElementById('planTitle').textContent,zones:document.querySelectorAll('.subplan-zone').length,calls:document.querySelectorAll('.edge.call').length})");
-    if (snapshot.title!=='Smoke custom name'||!snapshot.zones || snapshot.calls < 2) throw new Error(`Custom name or reusable subplan rendering failed: ${JSON.stringify(snapshot)}`);
+    if (snapshot.title!=='Smoke custom name'||snapshot.zones!==2 || snapshot.calls!==4) throw new Error(`Custom name or reusable subplan rendering failed: ${JSON.stringify(snapshot)}`);
     reusableZones += snapshot.zones;
   });
   const structure = await evaluate(`(() => {
     const card=id=>document.querySelector('.node-card[data-subplan="false"][data-node-id="'+id+'"]');
-    const root=card('0'),left=card('1'),right=card('4');
+    const root=card('0'),left=card('1'),right=card('16');
     const center=el=>el?el.offsetLeft+el.offsetWidth/2:null;
     const toggle=document.querySelector('.tree-toggle'),bar=document.querySelector('.tree-bar'),metrics=document.querySelector('.tree-metrics'),value=document.querySelector('.tree-value');
     const version=document.querySelector('.app-version'),versionStyle=getComputedStyle(version);
@@ -190,6 +198,15 @@ try {
   if (structure.buildText!=='SQL Server build test' || !structure.buildTitle || structure.stats.length!==3 || structure.stats[0].text!=='Total time: 5.85 min' || structure.stats[1].text!=='Planning: 23 ms' || structure.stats[2].text!=='Peak query memory: 2.00 MB' || !structure.stats[2].title.includes('MaxUsedMemory')) failures.push(`Plan summary metrics failed: ${JSON.stringify(structure)}`);
   if (structure.version!=='v0.2.9' || structure.versionFont>11 || structure.versionColor==='rgb(237, 241, 247)') failures.push(`Application version label failed: ${JSON.stringify(structure)}`);
   if (structure.toggleFont < 20 || (structure.toggleOpacity !== '0' && !structure.hoverNone) || structure.barBackground === 'rgba(0, 0, 0, 0)' || structure.barMask === 'rgba(0, 0, 0, 0)' || structure.metricsBackground === 'rgba(0, 0, 0, 0)' || Number(structure.metricsZ) <= Number(structure.nameZ) || structure.metricsWidth <= structure.contentsWidth) failures.push(`Tree controls or opaque metric column failed: ${JSON.stringify(structure)}`);
+  const subplanPacking = await evaluate(`(() => {
+    const zones=Array.from(document.querySelectorAll('.subplan-zone')).map(zone=>({number:zone.dataset.subplanZone,left:zone.offsetLeft,right:zone.offsetLeft+zone.offsetWidth,top:zone.offsetTop,bottom:zone.offsetTop+zone.offsetHeight,center:zone.offsetLeft+zone.offsetWidth/2}));
+    const mainCards=Array.from(document.querySelectorAll('.node-card[data-subplan="false"]')),mainBottom=Math.max(...mainCards.map(card=>card.offsetTop+card.offsetHeight));
+    const callCenters=number=>mainCards.filter(card=>card.querySelector('.node-title')?.textContent.includes('Reusable subplan '+number)).map(card=>card.offsetLeft+card.offsetWidth/2);
+    const anchors=zones.map(zone=>{const calls=callCenters(zone.number),preferred=(Math.min(...calls)+Math.max(...calls))/2;return {calls:calls.length,error:Math.abs(zone.center-preferred)}});
+    const overlap=Math.min(zones[0].right,zones[1].right)-Math.max(zones[0].left,zones[1].left);
+    return {zones,anchors,mainBottom,sameRow:zones[0].top===zones[1].top,overlap};
+  })()`);
+  if (!subplanPacking.sameRow || subplanPacking.overlap>0 || subplanPacking.zones.some(zone=>zone.top<=subplanPacking.mainBottom) || subplanPacking.anchors.some(anchor=>anchor.calls!==2||anchor.error>221)) failures.push(`Reusable-subplan row packing failed: ${JSON.stringify(subplanPacking)}`);
 
   const collapseBefore = await evaluate(`(() => {document.querySelector('.tree-row').click();const toggle=document.querySelector('.tree-row .tree-toggle'),r=toggle.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;return {before:document.querySelectorAll('.tree-row').length,selectedBefore:document.querySelectorAll('.tree-row.selected').length,x,y,hitToggle:Boolean(document.elementFromPoint(x,y)?.closest('[data-toggle]'))}})()`);
   await send('Input.dispatchMouseEvent',{type:'mousePressed',x:collapseBefore.x,y:collapseBefore.y,button:'left',clickCount:1});
@@ -250,12 +267,17 @@ try {
   const verticalWheel = await evaluate(`(() => {const tree=document.getElementById('tree');const top=tree.scrollTop;tree.style.maxHeight='';return top})()`);
   if (verticalWheel <= 0) failures.push(`Tree vertical wheel scrolling failed: ${verticalWheel}`);
 
-  const targetId = await evaluate("document.querySelector('.node-card[data-subplan=\"false\"][data-node-id=\"4\"]').dataset.id");
-  await evaluate(`document.querySelector('.tree-row[data-id=${JSON.stringify(targetId)}]').click()`);
+  const treeClickTarget = await evaluate(`(() => {const id=document.querySelector('.node-card[data-subplan="false"][data-node-id="4"]').dataset.id,tree=document.getElementById('tree'),row=document.querySelector('.tree-row[data-id="'+id+'"]');tree.scrollLeft=0;row.scrollIntoView({block:'center'});const r=row.getBoundingClientRect();return {id,x:r.left+Math.min(90,r.width/3),y:r.top+r.height/2}})()`);
+  await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:treeClickTarget.x,y:treeClickTarget.y,button:'none'});
+  await send('Input.dispatchMouseEvent',{type:'mousePressed',x:treeClickTarget.x,y:treeClickTarget.y,button:'left',clickCount:1});
+  await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:treeClickTarget.x,y:treeClickTarget.y,button:'left',clickCount:1});
   await delay(500);
+  const targetId = treeClickTarget.id;
   const camera = await evaluate(`(() => {const canvas=document.getElementById('canvasWrap'),stage=document.getElementById('graphStage'),card=document.querySelector('.node-card[data-id=${JSON.stringify(targetId)}]'),drawer=document.getElementById('detailsDrawer'),inset=drawer.classList.contains('open')?drawer.offsetWidth:0,visibleWidth=Math.max(1,canvas.clientWidth-inset);const expectedLeft=Math.max(0,Math.min(stage.scrollWidth-canvas.clientWidth,(card.offsetLeft+card.offsetWidth/2)-visibleWidth/2));const expectedTop=Math.max(0,Math.min(stage.scrollHeight-canvas.clientHeight,(card.offsetTop+card.offsetHeight/2)-canvas.clientHeight/2));return {selected:card.classList.contains('selected'),drawer:drawer.classList.contains('open'),leftError:Math.abs(canvas.scrollLeft-expectedLeft),topError:Math.abs(canvas.scrollTop-expectedTop)}})()`);
   if (!camera.selected || !camera.drawer || camera.leftError > 3 || camera.topError > 3) failures.push(`Tree-to-graph camera focus failed: ${JSON.stringify(camera)}`);
-  const repeatedSelection = await evaluate(`(() => {document.querySelector('.tree-row[data-id=${JSON.stringify(targetId)}]').click();return {selected:document.querySelectorAll('.node-card.selected').length,drawer:document.getElementById('detailsDrawer').classList.contains('open')}})()`);
+  await send('Input.dispatchMouseEvent',{type:'mousePressed',x:treeClickTarget.x,y:treeClickTarget.y,button:'left',clickCount:1});
+  await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:treeClickTarget.x,y:treeClickTarget.y,button:'left',clickCount:1});
+  const repeatedSelection = await evaluate(`({selected:document.querySelectorAll('.node-card.selected').length,drawer:document.getElementById('detailsDrawer').classList.contains('open')})`);
   if (repeatedSelection.selected || repeatedSelection.drawer) failures.push(`Repeated node click did not clear selection: ${JSON.stringify(repeatedSelection)}`);
 
   const graphToTreeId = await evaluate("document.querySelector('.node-card[data-subplan=\"true\"][data-node-id=\"3\"]').dataset.id");

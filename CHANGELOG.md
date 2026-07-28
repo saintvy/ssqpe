@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Reusable subplans are anchored near the midpoint of their call sites and packed into shared rows when their zones do not overlap.
+
+### Fixed
+
+- Restored pointer-click selection from operator-list rows after pointer capture could retarget the click to the list container.
+
 ## [0.2.9] - 2026-07-28
 
 ### Added

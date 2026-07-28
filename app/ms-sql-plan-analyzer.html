@@ -1046,18 +1046,51 @@
       let maxRight = mainBounds.right + 50;
       const mainBottom = mainBounds.bottom;
       const subplans = [];
-      let subY = mainBottom + (statement.subplans.length ? 70 : 0);
-      statement.subplans.forEach(sp => {
-        const nodes = flatten([sp.root]);
-        const zoneX = 24, contentTop = subY + 52;
-        const bounds=assignPositions(tidySubtree(sp.root,node=>node.children),'_subLayout',zoneX+50,contentTop);
-        const bottom=bounds.bottom+28;
-        const right=bounds.right+50;
-        subplans.push({sp,nodes,x:zoneX,y:subY,width:right-zoneX,height:bottom-subY,bottom});
-        maxRight=Math.max(maxRight,right);
-        subY=bottom+30;
+      const zoneGap = 30, zonePadX = 50, zoneHeader = 52, zoneBottomPad = 28, maxAnchorShift = 220;
+      const zoneSpecs = statement.subplans.map(sp => {
+        const layout = tidySubtree(sp.root,node=>node.children);
+        const minX = Math.min(...layout.entries.map(entry => entry.x-halfCard));
+        const maxX = Math.max(...layout.entries.map(entry => entry.x+halfCard));
+        const maxDepth = Math.max(...layout.entries.map(entry => entry.depth));
+        const width = maxX-minX+zonePadX*2;
+        const height = zoneHeader+maxDepth*levelStep+cardMaxH+zoneBottomPad;
+        const callCenters = sp.calls.map(call => call._layout ? call._layout.x+cardW/2 : null).filter(value => value !== null);
+        const preferredCenter = callCenters.length ? (Math.min(...callCenters)+Math.max(...callCenters))/2 : (mainBounds.right+padX)/2;
+        return {sp,layout,nodes:flatten([sp.root]),width,height,preferredCenter,desiredX:Math.max(24,preferredCenter-width/2)};
+      }).sort((a,b) => a.desiredX-b.desiredX);
+      const rows = [];
+      const freePosition = (row, spec) => {
+        const candidates = [spec.desiredX,24];
+        row.intervals.forEach(interval => candidates.push(interval.right+zoneGap,interval.left-zoneGap-spec.width));
+        return candidates.filter(x => x >= 24 && row.intervals.every(interval => x+spec.width+zoneGap <= interval.left || x >= interval.right+zoneGap)).sort((a,b) => Math.abs(a-spec.desiredX)-Math.abs(b-spec.desiredX))[0];
+      };
+      zoneSpecs.forEach(spec => {
+        let placement = null;
+        for (const row of rows) {
+          const x = freePosition(row,spec);
+          if (x !== undefined && Math.abs(x-spec.desiredX) <= maxAnchorShift) { placement={row,x}; break; }
+        }
+        if (!placement) {
+          const row={intervals:[],specs:[],height:0};
+          rows.push(row);
+          placement={row,x:spec.desiredX};
+        }
+        spec.x=placement.x;
+        placement.row.intervals.push({left:spec.x,right:spec.x+spec.width});
+        placement.row.specs.push(spec);
+        placement.row.height=Math.max(placement.row.height,spec.height);
       });
-      return { mainNodes, subplans, width:maxRight+30, height:Math.max(mainBottom+60,subY+20), cardW, cardH };
+      let nextRowY = mainBottom + (rows.length ? 70 : 0);
+      rows.forEach(row => {
+        row.specs.forEach(spec => {
+          assignPositions(spec.layout,'_subLayout',spec.x+zonePadX,nextRowY+zoneHeader);
+          const bottom=nextRowY+spec.height;
+          subplans.push({sp:spec.sp,nodes:spec.nodes,x:spec.x,y:nextRowY,width:spec.width,height:spec.height,bottom,preferredCenter:spec.preferredCenter});
+          maxRight=Math.max(maxRight,spec.x+spec.width);
+        });
+        nextRowY+=row.height+zoneGap;
+      });
+      return { mainNodes, subplans, width:maxRight+30, height:Math.max(mainBottom+60,nextRowY+20), cardW, cardH };
     }
 
     function edgePath(a, b, cardW, cardH) {
@@ -1125,7 +1158,7 @@
           if(a) edges.push(`<path class="edge call" d="${edgePath(a,b,layout.cardW,layout.cardH)}"/>`);
         });
       });
-      const zones=layout.subplans.map(z=>`<div class="subplan-zone" style="left:${z.x}px;top:${z.y}px;width:${z.width}px;height:${z.height}px"><div class="subplan-label">↗ ${esc(t('reusableSubplan',{number:z.sp.number}))} · ${z.sp.calls.length} ${esc(t('calls'))}</div></div>`).join('');
+      const zones=layout.subplans.map(z=>`<div class="subplan-zone" data-subplan-zone="${z.sp.number}" style="left:${z.x}px;top:${z.y}px;width:${z.width}px;height:${z.height}px"><div class="subplan-label">↗ ${esc(t('reusableSubplan',{number:z.sp.number}))} · ${z.sp.calls.length} ${esc(t('calls'))}</div></div>`).join('');
       const mainCards=layout.mainNodes.map(n=>nodeCard(n,n._layout,false,executionTime)).join('');
       const subCards=layout.subplans.flatMap(z=>z.nodes.map(n=>nodeCard(n,n._subLayout,true,executionTime))).join('');
       els.graph.style.width=layout.width+'px'; els.graph.style.height=layout.height+'px';
@@ -1377,7 +1410,7 @@
     els.statementTabs.addEventListener('click',e=>{ const b=e.target.closest('[data-index]'); if(!b)return; state.statementIndex=Number(b.dataset.index); const s=currentStatement(); state.selectedId=null; state.collapsedIds.clear(); els.detailsDrawer.classList.remove('open'); renderAll(); const rootId=s.roots[0]?.id; if(rootId)requestAnimationFrame(()=>centerGraphNode(rootId,'auto')); });
     els.metricSwitch.addEventListener('click',e=>{ const b=e.target.closest('[data-metric]'); if(!b)return; state.metric=b.dataset.metric; renderTree(); });
     els.expandAllBtn.onclick=()=>{if(!state.collapsedIds.size)return;state.collapsedIds.clear();renderTree();};
-    els.tree.addEventListener('click',e=>{const toggle=e.target.closest('[data-toggle]');if(toggle){e.preventDefault();e.stopPropagation();state.dragMoved=false;const id=toggle.dataset.toggle;if(state.collapsedIds.has(id))state.collapsedIds.delete(id);else state.collapsedIds.add(id);renderTree();return;}if(state.dragMoved){state.dragMoved=false;return;}const row=e.target.closest('[data-id]');if(row)selectNode(row.dataset.id,{centerGraph:true});});
+    els.tree.addEventListener('click',e=>{const pointed=document.elementFromPoint(e.clientX,e.clientY);const toggle=e.target.closest('[data-toggle]')||pointed?.closest('[data-toggle]');if(toggle){e.preventDefault();e.stopPropagation();state.dragMoved=false;const id=toggle.dataset.toggle;if(state.collapsedIds.has(id))state.collapsedIds.delete(id);else state.collapsedIds.add(id);renderTree();return;}if(state.dragMoved){state.dragMoved=false;return;}const row=e.target.closest('[data-id]')||pointed?.closest('.tree-row[data-id]');if(row&&els.tree.contains(row))selectNode(row.dataset.id,{centerGraph:true});});
     els.canvasWrap.addEventListener('click',e=>{if(state.dragMoved){state.dragMoved=false;return;}const card=e.target.closest('.node-card[data-id]');selectNode(card?.dataset.id||null,{centerTree:Boolean(card)});});
     els.drawerBody.addEventListener('click',e=>{const button=e.target.closest('[data-copy-detail]');if(!button)return;e.preventDefault();e.stopPropagation();const key=button.dataset.copyDetail;if(state.detailCopies.has(key))copyText(state.detailCopies.get(key));});
     els.closeDetails.onclick=()=>{els.detailsDrawer.classList.remove('open');updateGraphViewport();};
