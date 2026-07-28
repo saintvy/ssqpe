@@ -93,7 +93,7 @@ The repository includes three dependency-free GitHub workflows:
 For example, after updating the changelog:
 
 ```bash
-git tag v0.2.4
+git tag v0.2.5
 git push origin main --tags
 ```
 

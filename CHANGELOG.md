@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-07-28
+
 ### Added
 
 - Added collapsed-by-default, expandable sections for operands and predicates, output columns, and defined values in operator details.
