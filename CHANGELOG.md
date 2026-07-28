@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.9] - 2026-07-28
+
+### Added
+
+- Added plan-level total execution time, compilation time, and peak query-memory usage to the plan summary when SQL Server reports those values.
+
+### Fixed
+
+- Horizontal dragging in the operator list now keeps pointer capture during fast movements.
+
 ## [0.2.8] - 2026-07-28
 
 ### Added
