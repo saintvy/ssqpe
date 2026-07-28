@@ -34,7 +34,7 @@ const plans = process.env.SMOKE_PUBLIC_ONLY ? [] : process.env.SMOKE_LIMIT ? all
 const repeatedSubplan = `<?xml version="1.0"?>
 <ShowPlanXML xmlns="http://schemas.microsoft.com/sqlserver/2004/07/showplan" Version="1.0" Build="test"><BatchSequence><Batch><Statements>
 <StmtSimple StatementId="1" StatementType="SELECT" StatementText="synthetic repeated subtree"><QueryPlan>
-<RelOp NodeId="0" PhysicalOp="Concatenation" LogicalOp="Concatenation" EstimateRows="2" EstimatedTotalSubtreeCost="2"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="2" ActualExecutions="1" ActualElapsedms="351000" ActualCPUms="93600"/></RunTimeInformation>
+<RelOp NodeId="0" PhysicalOp="Concatenation" LogicalOp="Concatenation" EstimateRows="2" EstimatedTotalSubtreeCost="2"><OutputList><ColumnReference Database="[db]" Schema="[dbo]" Table="[A]" Column="Id"/></OutputList><DefinedValues><DefinedValue><ColumnReference Column="Expr1000"/></DefinedValue></DefinedValues><Predicate><ScalarOperator ScalarString="[A].[Id]&gt;(0)"/></Predicate><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="2" ActualExecutions="1" ActualElapsedms="351000" ActualCPUms="93600"/></RunTimeInformation>
 <Concatenation>
 <RelOp NodeId="1" PhysicalOp="Nested Loops" LogicalOp="Inner Join" EstimateRows="1" EstimatedTotalSubtreeCost="1"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="100" ActualExecutions="1" ActualElapsedms="172800" ActualCPUms="50000"/></RunTimeInformation><NestedLoops>
 <RelOp NodeId="2" PhysicalOp="Compute Scalar" LogicalOp="Compute Scalar" EstimateRows="1" EstimatedTotalSubtreeCost="0.4"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1"/></RunTimeInformation><ComputeScalar><RelOp NodeId="7" PhysicalOp="Stream Aggregate" LogicalOp="Aggregate" EstimateRows="1" EstimatedTotalSubtreeCost="0.3"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1" ActualElapsedms="172800" ActualCPUms="40000"/></RunTimeInformation><StreamAggregate><RelOp NodeId="9" PhysicalOp="Filter" LogicalOp="Filter" EstimateRows="1" EstimatedTotalSubtreeCost="0.2"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1" ActualElapsedms="400" ActualCPUms="100"/></RunTimeInformation><Filter><RelOp NodeId="10" PhysicalOp="Index Scan" LogicalOp="Index Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.1"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1" ActualElapsedms="170000" ActualCPUms="39000"/></RunTimeInformation><IndexScan><Object Schema="[dbo]" Table="[A]" Index="[IX_A]"/></IndexScan></RelOp></Filter></RelOp></StreamAggregate></RelOp></ComputeScalar></RelOp>
@@ -209,6 +209,11 @@ try {
     return {root:series('0'),child:series('1'),legend:document.querySelectorAll('#metricNotice .metric-dot').length};
   })()`);
   if (Math.abs(timeMetric.root.elapsed-100)>0.1 || Math.abs(timeMetric.root.current-(178200/351000*100))>0.1 || timeMetric.root.value!=='2.97 min' || Math.abs(timeMetric.child.elapsed-(172800/351000*100))>0.1 || timeMetric.child.current!==0 || timeMetric.child.value!=='0 ms' || timeMetric.legend!==2) failures.push(`Time metric elapsed/current-operator scale failed: ${JSON.stringify(timeMetric)}`);
+  const graphOperatorStats = await evaluate(`(() => {
+    const value=nodeId=>document.querySelector('.node-card[data-subplan="false"][data-node-id="'+nodeId+'"] .node-stats .stat:nth-child(2) .stat-value').textContent;
+    return {root:value('0'),child:value('4')};
+  })()`);
+  if (graphOperatorStats.root!=='2.97 min / 0' || graphOperatorStats.child!=='200 ms / 0.2') failures.push(`Graph cards do not show current-operator time/cost: ${JSON.stringify(graphOperatorStats)}`);
 
   const treePoint = await evaluate(`(() => {const tree=document.getElementById('tree');tree.scrollLeft=0;const r=tree.getBoundingClientRect();return {x:r.right-25,y:r.top+80,left:r.left+25,canPan:tree.scrollWidth>tree.clientWidth}})()`);
   if (treePoint.canPan) {
@@ -241,6 +246,15 @@ try {
 
   const elapsedDetails = await evaluate(`(() => {const card=id=>document.querySelector('.node-card[data-node-id="'+id+'"]'),rowValue=id=>document.querySelector('.tree-row[data-id="'+card(id).dataset.id+'"] .tree-value').textContent;card('0').click();const rootText=document.getElementById('drawerBody').textContent,rootValue=rowValue('0');card('1').click();const bridgedText=document.getElementById('drawerBody').textContent,bridgedValue=rowValue('1');card('7').click();const deepText=document.getElementById('drawerBody').textContent,deepValue=rowValue('7');return {actual:rootText.includes('5.85 min'),exclusive:rootText.includes('≈ 2.97 min'),cpu:rootText.includes('1.56 min'),rootValue,bridged:bridgedText.includes('≈ 0 ms'),bridgedValue,deep:deepText.includes('≈ 2.80 s'),deepValue,note:Boolean(document.querySelector('#drawerBody .detail-note'))}})()`);
   if (!elapsedDetails.actual || !elapsedDetails.exclusive || !elapsedDetails.cpu || elapsedDetails.rootValue!=='2.97 min' || !elapsedDetails.bridged || elapsedDetails.bridgedValue!=='0 ms' || !elapsedDetails.deep || elapsedDetails.deepValue!=='2.80 s' || !elapsedDetails.note) failures.push(`Elapsed-time details or displayed current-operator estimate failed: ${JSON.stringify(elapsedDetails)}`);
+  const collapsedDetails = await evaluate(`(() => {
+    document.querySelector('.node-card[data-subplan="false"][data-node-id="0"]').click();
+    const sections=Array.from(document.querySelectorAll('#drawerBody details.detail-collapsible'));
+    const initial=sections.map(section=>section.open),labels=sections.map(section=>section.querySelector('summary').textContent),cpuLabel=document.getElementById('drawerBody').textContent.includes('Actual elapsed CPU time');
+    sections[0].querySelector('summary').click();const opened=sections[0].open;
+    sections[0].querySelector('summary').click();const closedAgain=!sections[0].open;
+    return {count:sections.length,initial,labels,cpuLabel,opened,closedAgain};
+  })()`);
+  if (collapsedDetails.count!==3 || collapsedDetails.initial.some(Boolean) || !collapsedDetails.cpuLabel || !collapsedDetails.opened || !collapsedDetails.closedAgain) failures.push(`Collapsed detail sections or CPU label failed: ${JSON.stringify(collapsedDetails)}`);
 
   const emptySelection = await evaluate(`(() => {document.querySelector('.node-card[data-subplan="false"][data-node-id="4"]').click();const opened=document.getElementById('detailsDrawer').classList.contains('open');document.getElementById('graph').dispatchEvent(new MouseEvent('click',{bubbles:true}));return {opened,selected:document.querySelectorAll('.node-card.selected').length,drawer:document.getElementById('detailsDrawer').classList.contains('open')}})()`);
   if (!emptySelection.opened || emptySelection.selected || emptySelection.drawer) failures.push(`Empty graph click did not clear selection: ${JSON.stringify(emptySelection)}`);

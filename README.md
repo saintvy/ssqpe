@@ -10,7 +10,7 @@ SSQPE is a self-contained, offline visualizer and analyzer for Microsoft SQL Ser
 - Drag-and-drop, file picker, and pasted ShowPlan XML input.
 - Actual and estimated rows, elapsed time, CPU, estimated cost, executions, reads, spills, warnings, predicates, objects, output columns, and per-thread counters.
 - A hierarchical operator list with Time, Cost, and Rows views.
-- A compact contour-packed, top-down, pannable, and zoomable node graph with expandable nodes and a lockable details drawer.
+- A compact contour-packed, top-down, pannable, and zoomable node graph whose cards show current-operator time and cost, with expandable nodes and a lockable details drawer.
 - PEV2-style severity badges for slow operators and row-estimation errors.
 - Structural detection of repeated subtrees, rendered as reusable subplans with call-site links.
 - Multi-statement plans and statements that do not contain a physical operator tree.
@@ -42,6 +42,7 @@ No web server is required. The HTML file can be copied to an offline workstation
 | Scroll the operator list vertically | Use the mouse wheel |
 | Collapse or expand a list subtree | Select the chevron beside its parent operator |
 | Inspect an operator | Click its graph node or list row; each view centers its camera on the matching operator in the other view |
+| Expand long operator metadata | Select the Operands and predicates, Output columns, or Defined values heading in the details drawer |
 | Clear the selected operator | Click it again or click empty graph space |
 | Keep details closed | Select **Keep details hidden** in the details drawer |
 | Reset graph position and zoom | Select **Reset view** |
