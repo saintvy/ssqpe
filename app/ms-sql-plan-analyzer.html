@@ -314,9 +314,9 @@
         actualPlan: 'Фактический', estimatedPlan: 'Оценочный', statementsShort: 'запр.', nodesShort: 'узлов', query: 'Запрос', queryNumber: 'Запрос {number}',
         noStatementGraph: 'В этом запросе нет графа операторов.', noGraphFromServer: 'Для этого запроса SQL Server не предоставил дерево операторов.', timeUnavailable: 'В XML отсутствует ActualElapsedms — фактическое время операторов неизвестно.',
         subtree: 'Поддерево', currentNode: 'Текущий оператор', estimate: 'Оценка', actual: 'Факт', noActualRows: 'Фактическое количество строк отсутствует', underestimated: 'Недооценено: фактических строк больше оценки', overestimated: 'Переоценено: фактических строк меньше оценки', closeEstimate: 'Оценка близка к факту', underShort: 'недооценка', overShort: 'переоценка', closeShort: 'до 10×', rowSeverity2: 'ошибка >10×', rowSeverity3: 'ошибка >100×', rowSeverity4: 'ошибка >1000×',
-        clickNode: 'Нажмите, чтобы открыть характеристики', rowsEstimateActual: 'Строки: оценка / факт', timeCost: 'Время / стоимость узла', executions: 'Выполнения', outputColumns: 'Выходные столбцы', actualCpuTime: 'Фактическое затраченное процессорное время',
-        flagWarning: 'Предупреждение оператора', flagParallel: 'Параллельное выполнение', flagBatch: 'Пакетный режим выполнения', slowNode: 'Медленный оператор: {percent}% общего времени ({time})', badRowEstimate: 'Плохая оценка строк: {direction} в {factor}× (оценка {estimated}, факт {actual})', underDirection: 'недооценка', overDirection: 'переоценка',
-        operator: 'Оператор', primaryMetrics: 'Основные показатели', estimatedRows: 'Оценка строк', actualRows: 'Фактические строки', actualTime: 'Фактическое elapsed-время', exclusiveTime: 'Время текущего оператора (оценка)', exclusiveTimeExplanation: 'Режимозависимая оценка критического пути: в Row Mode ActualElapsedms считается временем поддерева, а в Batch Mode — временем самого узла. Время Batch-узлов накапливается до ближайшего Row-узла; для перекрывающихся дочерних ветвей используется самая длинная. Параллельное и конвейерное выполнение не позволяет считать это точным измерением.', subtreeCost: 'Стоимость поддерева', selfCost: 'Собственная стоимость', mode: 'Режим',
+        clickNode: 'Нажмите, чтобы открыть характеристики', rowsEstimateActual: 'Строки за выполнение: оценка / факт', timeCost: 'Время / стоимость узла', executions: 'Выполнения', outputColumns: 'Выходные столбцы', actualCpuTime: 'Фактическое затраченное процессорное время',
+        flagWarning: 'Предупреждение оператора', flagParallel: 'Параллельное выполнение', flagBatch: 'Пакетный режим выполнения', slowNode: 'Медленный оператор: {percent}% общего времени ({time})', badRowEstimate: 'Плохая оценка строк: {direction} в {factor}× (за выполнение: оценка {estimated}, факт {actual})', underDirection: 'недооценка', overDirection: 'переоценка',
+        operator: 'Оператор', primaryMetrics: 'Основные показатели', estimatedRows: 'Оценка строк за выполнение', actualRows: 'Фактические строки за выполнение', actualRowsAllExecutions: 'Фактические строки за все выполнения', actualTime: 'Фактическое elapsed-время', exclusiveTime: 'Время текущего оператора (оценка)', exclusiveTimeExplanation: 'Режимозависимая оценка критического пути: в Row Mode ActualElapsedms считается временем поддерева, а в Batch Mode — временем самого узла. Время Batch-узлов накапливается до ближайшего Row-узла; для перекрывающихся дочерних ветвей используется самая длинная. Параллельное и конвейерное выполнение не позволяет считать это точным измерением.', subtreeCost: 'Стоимость поддерева', selfCost: 'Собственная стоимость', mode: 'Режим',
         ioAndCache: 'Ввод-вывод и кеш', logicalReads: 'Логические чтения', physicalReads: 'Физические чтения', readAhead: 'Упреждающие чтения', lobLogicalReads: 'Логические чтения LOB', lobPhysicalReads: 'Физические чтения LOB', scans: 'Сканирования',
         warnings: 'Предупреждения', object: 'Объект', operandsPredicates: 'Операнды и предикаты', definedValues: 'Определяемые значения', optimizerEstimates: 'Оценки оптимизатора', averageRowSize: 'Средний размер строки', estimatedRowsRead: 'Оценка прочитанных строк', tableCardinality: 'Кардинальность таблицы', showPlanAttributes: 'Атрибуты ShowPlan', threads: 'Потоки', thread: 'Поток', elapsed: 'Время',
         reusableSubplan: 'Повторно используемый подплан {number}', calls: 'вызовов',
@@ -335,9 +335,9 @@
         actualPlan: 'Actual', estimatedPlan: 'Estimated', statementsShort: 'queries', nodesShort: 'nodes', query: 'Query', queryNumber: 'Query {number}',
         noStatementGraph: 'This query has no operator graph.', noGraphFromServer: 'SQL Server did not provide an operator tree for this query.', timeUnavailable: 'ActualElapsedms is absent from the XML — operator elapsed time is unknown.',
         subtree: 'Subtree', currentNode: 'Current operator', estimate: 'Estimate', actual: 'Actual', noActualRows: 'Actual row count is unavailable', underestimated: 'Underestimated: actual rows exceed the estimate', overestimated: 'Overestimated: actual rows are below the estimate', closeEstimate: 'Estimate is close to actual', underShort: 'underestimated', overShort: 'overestimated', closeShort: 'up to 10×', rowSeverity2: 'error >10×', rowSeverity3: 'error >100×', rowSeverity4: 'error >1000×',
-        clickNode: 'Click to open operator details', rowsEstimateActual: 'Rows: estimate / actual', timeCost: 'Operator time / cost', executions: 'Executions', outputColumns: 'Output columns', actualCpuTime: 'Actual elapsed CPU time',
-        flagWarning: 'Operator warning', flagParallel: 'Parallel execution', flagBatch: 'Batch execution mode', slowNode: 'Slow operator: {percent}% of total time ({time})', badRowEstimate: 'Bad row estimate: {direction} by {factor}× (estimated {estimated}, actual {actual})', underDirection: 'underestimated', overDirection: 'overestimated',
-        operator: 'Operator', primaryMetrics: 'Primary metrics', estimatedRows: 'Estimated rows', actualRows: 'Actual rows', actualTime: 'Actual elapsed time', exclusiveTime: 'Current-operator time (estimated)', exclusiveTimeExplanation: 'Execution-mode-aware critical-path estimate: ActualElapsedms is treated as subtree time in Row Mode and as node-only time in Batch Mode. Batch-node time accumulates down to the nearest Row node; the longest overlapping child branch is used. Parallel and pipelined execution prevents this from being an exact measurement.', subtreeCost: 'Subtree cost', selfCost: 'Self cost', mode: 'Mode',
+        clickNode: 'Click to open operator details', rowsEstimateActual: 'Rows per execution: estimate / actual', timeCost: 'Operator time / cost', executions: 'Executions', outputColumns: 'Output columns', actualCpuTime: 'Actual elapsed CPU time',
+        flagWarning: 'Operator warning', flagParallel: 'Parallel execution', flagBatch: 'Batch execution mode', slowNode: 'Slow operator: {percent}% of total time ({time})', badRowEstimate: 'Bad row estimate: {direction} by {factor}× (per execution: estimated {estimated}, actual {actual})', underDirection: 'underestimated', overDirection: 'overestimated',
+        operator: 'Operator', primaryMetrics: 'Primary metrics', estimatedRows: 'Estimated rows per execution', actualRows: 'Actual rows per execution', actualRowsAllExecutions: 'Actual rows for all executions', actualTime: 'Actual elapsed time', exclusiveTime: 'Current-operator time (estimated)', exclusiveTimeExplanation: 'Execution-mode-aware critical-path estimate: ActualElapsedms is treated as subtree time in Row Mode and as node-only time in Batch Mode. Batch-node time accumulates down to the nearest Row node; the longest overlapping child branch is used. Parallel and pipelined execution prevents this from being an exact measurement.', subtreeCost: 'Subtree cost', selfCost: 'Self cost', mode: 'Mode',
         ioAndCache: 'I/O and cache', logicalReads: 'Logical reads', physicalReads: 'Physical reads', readAhead: 'Read-ahead reads', lobLogicalReads: 'LOB logical reads', lobPhysicalReads: 'LOB physical reads', scans: 'Scans',
         warnings: 'Warnings', object: 'Object', operandsPredicates: 'Operands and predicates', definedValues: 'Defined values', optimizerEstimates: 'Optimizer estimates', averageRowSize: 'Average row size', estimatedRowsRead: 'Estimated rows read', tableCardinality: 'Table cardinality', showPlanAttributes: 'ShowPlan attributes', threads: 'Threads', thread: 'Thread', elapsed: 'Elapsed',
         reusableSubplan: 'Reusable subplan {number}', calls: 'calls',
@@ -440,7 +440,7 @@
     function estimateInfo(node) {
       if (!node.runtime?.hasRows) return null;
       const estimated = node.estimatedRows;
-      const actual = node.runtime.ActualRows;
+      const actual = actualRowsPerExecution(node);
       let factor = 1;
       let direction = '';
       if (actual > estimated) {
@@ -452,6 +452,14 @@
       }
       const severity = factor > 1000 ? 4 : factor > 100 ? 3 : factor > 10 ? 2 : 0;
       return { estimated, actual, factor, direction, severity };
+    }
+
+    function actualRowsPerExecution(node) {
+      const runtime = node.runtime;
+      if (!runtime?.hasRows) return null;
+      return runtime.hasExecutions && runtime.ActualExecutions > 0
+        ? runtime.ActualRows / runtime.ActualExecutions
+        : runtime.ActualRows;
     }
 
     function statementExecutionTime(statement) {
@@ -527,7 +535,8 @@
         threadRows: [],
         hasElapsed: counters.some(el => el.hasAttribute('ActualElapsedms')),
         hasCPU: counters.some(el => el.hasAttribute('ActualCPUms')),
-        hasRows: counters.some(el => el.hasAttribute('ActualRows'))
+        hasRows: counters.some(el => el.hasAttribute('ActualRows')),
+        hasExecutions: counters.some(el => el.hasAttribute('ActualExecutions'))
       };
       sumKeys.forEach(k => result[k] = counters.reduce((sum, el) => sum + num(attr(el, k)), 0));
       result.ActualElapsedms = counters.reduce((max, el) => Math.max(max, num(attr(el, 'ActualElapsedms'))), 0);
@@ -889,7 +898,7 @@
       else if (state.metric === 'rows') els.metricNotice.innerHTML = `<span class="rows-legend"><span><i class="metric-dot" style="background:#4fd0a4"></i>${esc(t('closeShort'))}</span><span><i class="metric-dot" style="background:#fddb61"></i>${esc(t('rowSeverity2'))}</span><span><i class="metric-dot" style="background:#ee8800"></i>${esc(t('rowSeverity3'))}</span><span><i class="metric-dot" style="background:#ff5964"></i>${esc(t('rowSeverity4'))}</span></span>`;
       else els.metricNotice.textContent = '';
       const maximum = state.metric === 'rows'
-        ? Math.max(...allNodes.flatMap(n => [n.estimatedRows, n.runtime?.hasRows ? n.runtime.ActualRows : 0]), 0.0000001)
+        ? Math.max(...allNodes.flatMap(n => [n.estimatedRows, actualRowsPerExecution(n) || 0]), 0.0000001)
         : state.metric === 'time'
           ? Math.max(...allNodes.flatMap(n => [n.runtime?.hasElapsed ? n.runtime.ActualElapsedms : 0, n.selfTime || 0]), 0.0000001)
         : Math.max(...s.roots.map(r => metricValues(r).subtree || 0), ...allNodes.map(n => metricValues(n).subtree || 0), 0.0000001);
@@ -897,7 +906,7 @@
         if (state.metric === 'rows') {
           const estimated = n.estimatedRows;
           const hasActual = Boolean(n.runtime?.hasRows);
-          const actual = hasActual ? n.runtime.ActualRows : null;
+          const actual = hasActual ? actualRowsPerExecution(n) : null;
           const estimate = estimateInfo(n);
           const severity = estimate?.severity || 0;
           const accuracyText = actual === null ? t('noActualRows') : t(actual > estimated ? 'underestimated' : actual < estimated ? 'overestimated' : 'closeEstimate');
@@ -1027,7 +1036,7 @@
     }
 
     function nodeCard(n, pos, sub = false, executionTime = 0) {
-      const actualRows = n.runtime?.hasRows ? n.runtime.ActualRows : null;
+      const actualRows = actualRowsPerExecution(n);
       const subtitle = n.objectLabel || (n.expressions[0] ? shortText(n.expressions[0],70) : n.logical);
       const flags = [
         n.warnings.length?`<span class="flag warn" tabindex="0" data-tip="${esc(t('flagWarning'))}" title="${esc(t('flagWarning'))}" aria-label="${esc(t('flagWarning'))}">!</span>`:'',
@@ -1086,8 +1095,10 @@
       els.drawerTitle.textContent = n.physical;
       els.drawerSubtitle.textContent = `${n.logical || t('operator')} · NodeId ${n.nodeId}${n.objectLabel?' · '+n.objectLabel:''}`;
       const actual = n.runtime;
+      const actualRows = actualRowsPerExecution(n);
       const primary = [
-        [t('estimatedRows'), formatNumber(n.estimatedRows)], [t('actualRows'), actual?.hasRows ? formatNumber(actual.ActualRows) : t('missing')],
+        [t('estimatedRows'), formatNumber(n.estimatedRows)], [t('actualRows'), actualRows === null ? t('missing') : formatNumber(actualRows)],
+        [t('actualRowsAllExecutions'), actual?.hasRows ? formatNumber(actual.ActualRows) : t('missing')],
         [t('actualTime'), actual?.hasElapsed ? formatMs(actual.ActualElapsedms) : t('missing')], [t('exclusiveTime'), n.selfTime === null ? t('missing') : '≈ ' + formatMs(n.selfTime)], [t('actualCpuTime'), actual?.hasCPU ? formatMs(actual.ActualCPUms) : t('missing')],
         [t('subtreeCost'), formatNumber(n.estimatedCost)], [t('selfCost'), formatNumber(n.selfCost)],
         [t('executions'), actual ? formatNumber(actual.ActualExecutions) : t('missing')], [t('mode'), actual?.ActualExecutionMode || n.estimatedMode || 'Row']

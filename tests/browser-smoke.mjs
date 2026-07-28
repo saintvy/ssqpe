@@ -56,6 +56,13 @@ const mixedModeTiming = `<?xml version="1.0"?>
 </Merge></RelOp></Sort></RelOp>
 <RelOp NodeId="5" PhysicalOp="Clustered Index Scan" LogicalOp="Clustered Index Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.2" EstimatedExecutionMode="Row"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1" ActualElapsedms="5000" ActualCPUms="0" ActualExecutionMode="Row"/></RunTimeInformation><IndexScan/></RelOp>
 </Merge></RelOp></QueryPlan></StmtSimple></Statements></Batch></BatchSequence></ShowPlanXML>`;
+const repeatedExecutionRows = `<?xml version="1.0"?>
+<ShowPlanXML xmlns="http://schemas.microsoft.com/sqlserver/2004/07/showplan" Version="1.0" Build="test"><BatchSequence><Batch><Statements>
+<StmtSimple StatementId="1" StatementType="SELECT" StatementText="synthetic rows per execution"><QueryPlan>
+<RelOp NodeId="0" PhysicalOp="Concatenation" LogicalOp="Concatenation" EstimateRows="2" EstimatedTotalSubtreeCost="1"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="2" ActualExecutions="1"/></RunTimeInformation><Concatenation>
+<RelOp NodeId="1" PhysicalOp="Index Seek" LogicalOp="Index Seek" EstimateRows="1" EstimatedTotalSubtreeCost="0.4"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="39553" ActualExecutions="39553"/></RunTimeInformation><IndexScan/></RelOp>
+<RelOp NodeId="2" PhysicalOp="Index Seek" LogicalOp="Index Seek" EstimateRows="2" EstimatedTotalSubtreeCost="0.4"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="20" ActualExecutions="10"/><RunTimeCountersPerThread Thread="1" ActualRows="60" ActualExecutions="10"/></RunTimeInformation><IndexScan/></RelOp>
+</Concatenation></RelOp></QueryPlan></StmtSimple></Statements></Batch></BatchSequence></ShowPlanXML>`;
 const longSqlText = `SELECT /* ${'horizontal-scroll-marker-'.repeat(80)} */\n${Array.from({length:700},(_,index)=>`  CASE WHEN source.[Column${index}] IS NULL THEN ${index} ELSE source.[Column${index}] END AS [Result${index}]`).join(',\n')}\nFROM dbo.Source AS source;`;
 const longSqlTail = `SELECT COUNT_BIG(*) AS [Tail marker] FROM dbo.Source;`;
 const xmlAttr = value => value.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('\r','&#13;').replaceAll('\n','&#10;');
@@ -305,6 +312,20 @@ try {
     return {root:series('0'),sort:series('1'),inner:series('2'),leaf:series('3'),legend:document.getElementById('metricNotice').textContent};
   })()`);
   if (Math.abs(mixedTiming.root.elapsed-100)>0.1 || Math.abs(mixedTiming.root.current-20)>0.1 || mixedTiming.root.value!=='10.00 s' || Math.abs(mixedTiming.sort.elapsed-20)>0.1 || Math.abs(mixedTiming.sort.current-20)>0.1 || mixedTiming.sort.value!=='10.00 s' || Math.abs(mixedTiming.inner.elapsed-60)>0.1 || Math.abs(mixedTiming.inner.current-10)>0.1 || mixedTiming.inner.value!=='5.00 s' || mixedTiming.leaf.value!=='25.00 s' || mixedTiming.legend.includes('CPU')) failures.push(`Mixed Row/Batch elapsed-time estimate failed: ${JSON.stringify(mixedTiming)}`);
+  await evaluate(`document.getElementById('menuBtn').click();document.getElementById('pasteBox').value=${JSON.stringify(repeatedExecutionRows)};document.getElementById('parsePasteBtn').click()`);
+  await retry(async () => {
+    if (!await evaluate("document.getElementById('viewer').classList.contains('visible') && document.querySelectorAll('.node-card').length===3")) throw new Error('Rows-per-execution plan did not render');
+  });
+  const rowsPerExecution = await evaluate(`(() => {
+    document.querySelector('[data-metric="rows"]').click();
+    const card=id=>document.querySelector('.node-card[data-subplan="false"][data-node-id="'+id+'"]');
+    const row=id=>document.querySelector('.tree-row[data-id="'+card(id).dataset.id+'"]');
+    const graphValue=id=>card(id).querySelector('.node-stats .stat:first-child .stat-value').textContent;
+    card('1').click();
+    const details=Object.fromEntries(Array.from(document.querySelectorAll('#drawerBody .kv')).map(item=>[item.querySelector('.k').textContent,item.lastElementChild.textContent]));
+    return {treeOne:row('1').querySelector('.tree-value').textContent,treeParallel:row('2').querySelector('.tree-value').textContent,graphOne:graphValue('1'),graphParallel:graphValue('2'),nodeOneAlert:Boolean(card('1').querySelector('[data-alert="rows"]')),estimated:details['Estimated rows per execution'],actualPerExecution:details['Actual rows per execution'],actualAllExecutions:details['Actual rows for all executions'],executions:details.Executions};
+  })()`);
+  if (rowsPerExecution.treeOne!=='1 / 1' || rowsPerExecution.treeParallel!=='2 / 4' || rowsPerExecution.graphOne!=='1 / 1' || rowsPerExecution.graphParallel!=='2 / 4' || rowsPerExecution.nodeOneAlert || rowsPerExecution.estimated!=='1' || rowsPerExecution.actualPerExecution!=='1' || rowsPerExecution.actualAllExecutions!=='39.55K' || rowsPerExecution.executions!=='39.55K') failures.push(`Rows per execution normalization failed: ${JSON.stringify(rowsPerExecution)}`);
   await evaluate(`document.getElementById('menuBtn').click();document.getElementById('pasteBox').value=${JSON.stringify(longSqlPlan)};document.getElementById('parsePasteBtn').click()`);
   await retry(async () => {
     if (!await evaluate("document.getElementById('viewer').classList.contains('visible')")) throw new Error('Long-SQL plan did not render');
