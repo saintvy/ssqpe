@@ -119,7 +119,8 @@
     .canvas-wrap { overflow: auto; position: relative; cursor: grab; user-select: none; overscroll-behavior: contain; }
     .canvas-wrap.panning { cursor: grabbing; }
     .canvas-wrap.panning .graph { pointer-events: none; }
-    .graph { position: relative; min-width: 100%; min-height: 100%; transform-origin: 0 0; }
+    .graph-stage { position: relative; min-width: 100%; min-height: 100%; }
+    .graph { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
     .edges { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
     .edge { fill: none; stroke: #53627b; stroke-width: 1.5; }
     .edge.call { stroke: var(--accent-2); stroke-dasharray: 5 5; stroke-width: 1.8; }
@@ -174,12 +175,16 @@
     .details-handle { display: none; position: absolute; right: 0; top: 105px; z-index: 31; border: 1px solid var(--accent); border-right: 0; border-radius: 7px 0 0 7px; background: #20334a; color: #bfe4ff; padding: 11px 6px; cursor: pointer; writing-mode: vertical-rl; }
     .details-handle.visible { display: block; }
     .detail-section { margin-bottom: 16px; }
-    .detail-section h3 { margin: 0 0 7px; color: #c8d1df; font-size: 11px; text-transform: uppercase; letter-spacing: .7px; }
+    .detail-heading { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+    .detail-section h3 { flex: 1; margin: 0; color: #c8d1df; font-size: 11px; text-transform: uppercase; letter-spacing: .7px; }
     .detail-section summary { display: flex; align-items: center; gap: 6px; color: #c8d1df; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; cursor: pointer; user-select: none; list-style: none; }
     .detail-section summary::-webkit-details-marker { display: none; }
     .detail-section summary::before { content: '›'; color: var(--accent); font-size: 18px; line-height: 11px; transform-origin: center; transition: transform .12s; }
     .detail-section[open] summary::before { transform: rotate(90deg); }
     .detail-section .detail-content { margin-top: 7px; }
+    .detail-copy-button { flex: 0 0 22px; width: 22px; height: 22px; margin-left: auto; display: inline-grid; place-items: center; padding: 0; border: 1px solid #3b475b; border-radius: 4px; background: #202837; color: var(--muted); cursor: pointer; }
+    .detail-copy-button:hover, .detail-copy-button:focus-visible { color: var(--text); border-color: #61718a; background: #283346; outline: none; }
+    .detail-copy-button svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; }
     .detail-note { margin-top: 7px; color: var(--muted); font-size: 11px; line-height: 1.45; }
     .kv { display: grid; grid-template-columns: minmax(120px, 44%) minmax(0, 1fr); border-top: 1px solid #2b3444; }
     .kv > div { padding: 5px 2px; overflow-wrap: anywhere; }
@@ -224,7 +229,7 @@
 <body>
   <div class="app">
     <header class="topbar">
-      <div class="brand"><span class="logo">SSQPE</span><span class="brand-title">SQL Server Query Plan Explorer</span><small class="app-version">v0.2.7</small></div>
+      <div class="brand"><span class="logo">SSQPE</span><span class="brand-title">SQL Server Query Plan Explorer</span><small class="app-version">v0.2.8</small></div>
       <div class="top-actions">
         <button class="btn hidden" id="menuBtn" data-i18n="backToMenu"></button>
         <button class="btn hidden" id="historyBtn"><span data-i18n="history"></span> <span id="historyCount"></span></button>
@@ -281,7 +286,7 @@
             <span class="zoom-label" id="zoomLabel">100%</span>
             <button class="btn" id="fitBtn" data-i18n="resetView"></button>
           </div>
-          <div class="canvas-wrap" id="canvasWrap"><div class="graph" id="graph"></div></div>
+          <div class="canvas-wrap" id="canvasWrap"><div class="graph-stage" id="graphStage"><div class="graph" id="graph"></div></div></div>
           <aside class="details-drawer" id="detailsDrawer">
             <div class="drawer-head"><div class="drawer-head-text"><div class="drawer-title" id="drawerTitle"></div><div class="drawer-subtitle" id="drawerSubtitle"></div></div><label class="drawer-lock"><input type="checkbox" id="hideDetailsCheck"><span data-i18n="keepDetailsHidden"></span></label><button class="icon-btn" id="closeDetails" data-i18n-aria="close">×</button></div>
             <div class="drawer-body" id="drawerBody"></div>
@@ -310,7 +315,7 @@
         expandAll: 'Развернуть всё', time: 'Время', cost: 'Стоимость', rows: 'Строки', resizeSidebar: 'Изменить ширину панели',
         openExecutionPlan: 'Откройте план выполнения SQL Server', dropDescription: 'Перетащите сюда файл <b>.sqlplan</b> из SSMS, выберите его с диска или вставьте ShowPlan XML. Данные не покидают браузер.',
         planNamePlaceholder: 'Имя плана для истории (необязательно)', chooseFile: 'Выбрать файл', pastePlaceholder: 'Вставьте XML, начинающийся с <ShowPlanXML …>', parseXml: 'Разобрать XML',
-        resetView: 'Сбросить вид', details: 'Детали', keepDetailsHidden: 'Скрыть детали', showDetails: 'Показать детали', close: 'Закрыть', collapseSubtree: 'Свернуть дочернее поддерево', expandSubtree: 'Развернуть дочернее поддерево', queryText: 'Текст запроса', showQuery: 'Показать SQL-текст', queryUnavailable: 'SQL-текст отсутствует', showRawPlan: 'Показать исходный план', rawPlan: 'Исходный XML-план', copy: 'Скопировать', copied: 'Текст скопирован', copyFailed: 'Не удалось скопировать текст',
+        resetView: 'Сбросить вид', details: 'Детали', keepDetailsHidden: 'Скрыть детали', showDetails: 'Показать детали', close: 'Закрыть', collapseSubtree: 'Свернуть дочернее поддерево', expandSubtree: 'Развернуть дочернее поддерево', queryText: 'Текст запроса', showQuery: 'Показать SQL-текст', queryUnavailable: 'SQL-текст отсутствует', showRawPlan: 'Показать исходный план', rawPlan: 'Исходный XML-план', copy: 'Скопировать', copySection: 'Скопировать раздел', copied: 'Текст скопирован', copyFailed: 'Не удалось скопировать текст',
         actualPlan: 'Фактический', estimatedPlan: 'Оценочный', statementsShort: 'запр.', nodesShort: 'узлов', query: 'Запрос', queryNumber: 'Запрос {number}',
         noStatementGraph: 'В этом запросе нет графа операторов.', noGraphFromServer: 'Для этого запроса SQL Server не предоставил дерево операторов.', timeUnavailable: 'В XML отсутствует ActualElapsedms — фактическое время операторов неизвестно.',
         subtree: 'Поддерево', currentNode: 'Текущий оператор', estimate: 'Оценка', actual: 'Факт', noActualRows: 'Фактическое количество строк отсутствует', underestimated: 'Недооценено: фактических строк больше оценки', overestimated: 'Переоценено: фактических строк меньше оценки', closeEstimate: 'Оценка близка к факту', underShort: 'недооценка', overShort: 'переоценка', closeShort: 'до 10×', rowSeverity2: 'ошибка >10×', rowSeverity3: 'ошибка >100×', rowSeverity4: 'ошибка >1000×',
@@ -331,7 +336,7 @@
         expandAll: 'Expand all', time: 'Time', cost: 'Cost', rows: 'Rows', resizeSidebar: 'Resize sidebar',
         openExecutionPlan: 'Open a SQL Server execution plan', dropDescription: 'Drop an SSMS <b>.sqlplan</b> file here, choose one from disk, or paste ShowPlan XML. Your data never leaves the browser.',
         planNamePlaceholder: 'Plan name for history (optional)', chooseFile: 'Choose file', pastePlaceholder: 'Paste XML starting with <ShowPlanXML …>', parseXml: 'Parse XML',
-        resetView: 'Reset view', details: 'Details', keepDetailsHidden: 'Keep details hidden', showDetails: 'Show details', close: 'Close', collapseSubtree: 'Collapse child subtree', expandSubtree: 'Expand child subtree', queryText: 'Query text', showQuery: 'Show SQL text', queryUnavailable: 'SQL text unavailable', showRawPlan: 'Show raw plan', rawPlan: 'Raw XML plan', copy: 'Copy', copied: 'Text copied', copyFailed: 'Could not copy text',
+        resetView: 'Reset view', details: 'Details', keepDetailsHidden: 'Keep details hidden', showDetails: 'Show details', close: 'Close', collapseSubtree: 'Collapse child subtree', expandSubtree: 'Expand child subtree', queryText: 'Query text', showQuery: 'Show SQL text', queryUnavailable: 'SQL text unavailable', showRawPlan: 'Show raw plan', rawPlan: 'Raw XML plan', copy: 'Copy', copySection: 'Copy section', copied: 'Text copied', copyFailed: 'Could not copy text',
         actualPlan: 'Actual', estimatedPlan: 'Estimated', statementsShort: 'queries', nodesShort: 'nodes', query: 'Query', queryNumber: 'Query {number}',
         noStatementGraph: 'This query has no operator graph.', noGraphFromServer: 'SQL Server did not provide an operator tree for this query.', timeUnavailable: 'ActualElapsedms is absent from the XML — operator elapsed time is unknown.',
         subtree: 'Subtree', currentNode: 'Current operator', estimate: 'Estimate', actual: 'Actual', noActualRows: 'Actual row count is unavailable', underestimated: 'Underestimated: actual rows exceed the estimate', overestimated: 'Overestimated: actual rows are below the estimate', closeEstimate: 'Estimate is close to actual', underShort: 'underestimated', overShort: 'overestimated', closeShort: 'up to 10×', rowSeverity2: 'error >10×', rowSeverity3: 'error >100×', rowSeverity4: 'error >1000×',
@@ -365,7 +370,7 @@
     const $ = (s, root = document) => root.querySelector(s);
     const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
     const els = Object.fromEntries([
-      'fileInput','menuBtn','historyBtn','historyCount','languageSelect','languageFlag','chooseBtn','planNameInput','pasteBox','parsePasteBtn','dropCard','emptyState','viewer','homeSidebar','homeHistoryList','homeClearHistoryBtn','planSidebar','planTitle','planMeta','statementTabs','metricSwitch','metricNotice','expandAllBtn','tree','main','canvasWrap','graph','queryBtn','rawPlanBtn','fitBtn','zoomLabel','detailsDrawer','detailsHandle','hideDetailsCheck','drawerTitle','drawerSubtitle','drawerBody','closeDetails','historyPanel','historyList','clearHistoryBtn','closeHistory','overlay','queryModal','queryText','textModalTitle','copyTextBtn','closeQuery','toast','resizer'
+      'fileInput','menuBtn','historyBtn','historyCount','languageSelect','languageFlag','chooseBtn','planNameInput','pasteBox','parsePasteBtn','dropCard','emptyState','viewer','homeSidebar','homeHistoryList','homeClearHistoryBtn','planSidebar','planTitle','planMeta','statementTabs','metricSwitch','metricNotice','expandAllBtn','tree','main','canvasWrap','graphStage','graph','queryBtn','rawPlanBtn','fitBtn','zoomLabel','detailsDrawer','detailsHandle','hideDetailsCheck','drawerTitle','drawerSubtitle','drawerBody','closeDetails','historyPanel','historyList','clearHistoryBtn','closeHistory','overlay','queryModal','queryText','textModalTitle','copyTextBtn','closeQuery','toast','resizer'
     ].map(id => [id, document.getElementById(id)]));
 
     const state = {
@@ -381,7 +386,8 @@
       zoom: 1,
       detailsLocked: false,
       collapsedIds: new Set(),
-      dragMoved: false
+      dragMoved: false,
+      detailCopies: new Map()
     };
 
     function applyI18n() {
@@ -1054,11 +1060,33 @@
       </article>`;
     }
 
+    const GRAPH_EDGE_GAP = 24;
+
+    function graphDetailsInset() {
+      return els.detailsDrawer.classList.contains('open') ? els.detailsDrawer.offsetWidth : 0;
+    }
+
+    function updateGraphViewport() {
+      const layout = state.layout;
+      if (!layout) {
+        els.graphStage.style.width = '100%';
+        els.graphStage.style.height = '100%';
+        return;
+      }
+      const baseWidth = Math.max(layout.width, els.graph.scrollWidth);
+      const baseHeight = Math.max(layout.height, els.graph.scrollHeight);
+      const width = Math.max(els.canvasWrap.clientWidth, Math.ceil(baseWidth * state.zoom + graphDetailsInset() + GRAPH_EDGE_GAP));
+      const height = Math.max(els.canvasWrap.clientHeight, Math.ceil(baseHeight * state.zoom + GRAPH_EDGE_GAP));
+      els.graphStage.style.width = `${width}px`;
+      els.graphStage.style.height = `${height}px`;
+    }
+
     function renderGraph() {
       const s = currentStatement();
       if (!s || !s.roots.length) {
+        state.layout = null;
         els.graph.innerHTML = `<div style="padding:30px;color:var(--muted)">${esc(t('noGraphFromServer'))}</div>`;
-        els.graph.style.width='100%'; els.graph.style.height='100%'; return;
+        els.graph.style.width='100%'; els.graph.style.height='100%'; updateGraphViewport(); return;
       }
       const layout = state.layout = layoutGraph(s);
       const executionTime = statementExecutionTime(s);
@@ -1078,6 +1106,7 @@
       const subCards=layout.subplans.flatMap(z=>z.nodes.map(n=>nodeCard(n,n._subLayout,true,executionTime))).join('');
       els.graph.style.width=layout.width+'px'; els.graph.style.height=layout.height+'px';
       els.graph.innerHTML=`${zones}<svg class="edges" width="${layout.width}" height="${layout.height}" aria-hidden="true">${edges.join('')}</svg>${mainCards}${subCards}`;
+      updateGraphViewport();
       const selected=$(`.node-card[data-id="${CSS.escape(state.selectedId || '')}"]`,els.graph);
       if(selected) selected.classList.add('expanded');
       const queryText = s.batchText || s.text;
@@ -1089,6 +1118,27 @@
 
     function detailRows(entries, formatter = v => v) {
       return entries.filter(([,v]) => v !== '' && v !== null && v !== undefined).map(([k,v]) => `<div class="kv"><div class="k">${esc(k)}</div><div>${esc(formatter(v,k))}</div></div>`).join('');
+    }
+
+    function detailTsv(entries) {
+      const cell = value => String(value).replace(/\t/g, ' ').replace(/\r?\n/g, ' ');
+      return entries.filter(([,v]) => v !== '' && v !== null && v !== undefined).map(([k,v]) => `${cell(k)}\t${cell(v)}`).join('\n');
+    }
+
+    function detailCopyButton(copies, value) {
+      if (!value) return '';
+      const key = String(copies.size);
+      copies.set(key, value);
+      const label = t('copySection');
+      return `<button type="button" class="detail-copy-button" data-copy-detail="${key}" title="${esc(label)}" aria-label="${esc(label)}"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="3" width="8" height="10" rx="1"></rect><path d="M3 11H2.5A1.5 1.5 0 0 1 1 9.5v-7A1.5 1.5 0 0 1 2.5 1h6A1.5 1.5 0 0 1 10 2.5V3"></path></svg></button>`;
+    }
+
+    function detailHeading(title, copies, value) {
+      return `<div class="detail-heading"><h3>${esc(title)}</h3>${detailCopyButton(copies, value)}</div>`;
+    }
+
+    function detailSummary(title, copies, value) {
+      return `<summary><span>${esc(title)}</span>${detailCopyButton(copies, value)}</summary>`;
     }
 
     function renderDetails(n) {
@@ -1110,27 +1160,34 @@
       const estimates = [['Estimate CPU',formatNumber(n.estimateCPU)],['Estimate IO',formatNumber(n.estimateIO)],[t('averageRowSize'),formatNumber(n.avgRowSize)+' B'],[t('estimatedRowsRead'),n.estimatedRowsRead===null?t('missing'):formatNumber(n.estimatedRowsRead)],[t('tableCardinality'),n.tableCardinality===null?t('missing'):formatNumber(n.tableCardinality)],['Rebinds / Rewinds',`${formatNumber(n.estimateRebinds)} / ${formatNumber(n.estimateRewinds)}`]];
       const objectRows = Object.entries(n.object);
       const attributeRows = Object.entries(n.attributes).filter(([k]) => !['NodeId','PhysicalOp','LogicalOp','EstimateRows','EstimatedTotalSubtreeCost','EstimateCPU','EstimateIO'].includes(k));
+      const threadTables = actual?.threadRows.map(row=>[[t('thread'),row.Thread],[t('rows'),row.ActualRows],[t('elapsed'),row.ActualElapsedms?formatMs(row.ActualElapsedms):t('missing')],[t('actualCpuTime'),row.ActualCPUms?formatMs(row.ActualCPUms):t('missing')],[t('logicalReads'),row.ActualLogicalReads||t('missing')]]) || [];
+      const copies = new Map();
       els.drawerBody.innerHTML = `
-        <section class="detail-section"><h3>${esc(t('primaryMetrics'))}</h3>${detailRows(primary)}${actual?.hasElapsed?`<div class="detail-note">${esc(t('exclusiveTimeExplanation'))}</div>`:''}</section>
-        ${io.length?`<section class="detail-section"><h3>${esc(t('ioAndCache'))}</h3>${detailRows(io)}</section>`:''}
-        ${n.warnings.length?`<section class="detail-section"><h3>${esc(t('warnings'))}</h3><div class="chip-list">${n.warnings.map(x=>`<span class="chip" style="border-color:#705e2b;color:#f4d77c">${esc(x)}</span>`).join('')}</div></section>`:''}
-        ${objectRows.length?`<section class="detail-section"><h3>${esc(t('object'))}</h3>${detailRows(objectRows)}</section>`:''}
-        ${n.expressions.length?`<details class="detail-section detail-collapsible"><summary>${esc(t('operandsPredicates'))}</summary><div class="detail-content">${n.expressions.map(x=>`<div class="expression">${esc(x)}</div>`).join('')}</div></details>`:''}
-        ${n.outputs.length?`<details class="detail-section detail-collapsible"><summary>${esc(t('outputColumns'))} (${n.outputs.length})</summary><div class="detail-content chip-list">${n.outputs.map(x=>`<span class="chip">${esc(x)}</span>`).join('')}</div></details>`:''}
-        ${n.defined.length?`<details class="detail-section detail-collapsible"><summary>${esc(t('definedValues'))}</summary><div class="detail-content chip-list">${n.defined.map(x=>`<span class="chip">${esc(x)}</span>`).join('')}</div></details>`:''}
-        <section class="detail-section"><h3>${esc(t('optimizerEstimates'))}</h3>${detailRows(estimates)}</section>
-        ${n.spills.length?`<section class="detail-section"><h3>Spill to tempdb</h3>${n.spills.map(x=>detailRows(Object.entries(x))).join('')}</section>`:''}
-        <section class="detail-section"><h3>${esc(t('showPlanAttributes'))}</h3>${detailRows(attributeRows)}</section>
-        ${actual&&actual.threadRows.length>1?`<section class="detail-section"><h3>${esc(t('threads'))} (${actual.threadRows.length})</h3>${actual.threadRows.map(row=>detailRows([[t('thread'),row.Thread],[t('rows'),row.ActualRows],[t('elapsed'),row.ActualElapsedms?formatMs(row.ActualElapsedms):t('missing')],[t('actualCpuTime'),row.ActualCPUms?formatMs(row.ActualCPUms):t('missing')],[t('logicalReads'),row.ActualLogicalReads||t('missing')]])).join('')}</section>`:''}`;
+        <section class="detail-section">${detailHeading(t('primaryMetrics'),copies,detailTsv(primary))}${detailRows(primary)}${actual?.hasElapsed?`<div class="detail-note">${esc(t('exclusiveTimeExplanation'))}</div>`:''}</section>
+        ${io.length?`<section class="detail-section">${detailHeading(t('ioAndCache'),copies,detailTsv(io))}${detailRows(io)}</section>`:''}
+        ${n.warnings.length?`<section class="detail-section">${detailHeading(t('warnings'),copies,n.warnings.join('\n'))}<div class="chip-list">${n.warnings.map(x=>`<span class="chip" style="border-color:#705e2b;color:#f4d77c">${esc(x)}</span>`).join('')}</div></section>`:''}
+        ${objectRows.length?`<section class="detail-section">${detailHeading(t('object'),copies,detailTsv(objectRows))}${detailRows(objectRows)}</section>`:''}
+        ${n.expressions.length?`<details class="detail-section detail-collapsible">${detailSummary(t('operandsPredicates'),copies,n.expressions.join('\n'))}<div class="detail-content">${n.expressions.map(x=>`<div class="expression">${esc(x)}</div>`).join('')}</div></details>`:''}
+        ${n.outputs.length?`<details class="detail-section detail-collapsible">${detailSummary(`${t('outputColumns')} (${n.outputs.length})`,copies,n.outputs.join('\n'))}<div class="detail-content chip-list">${n.outputs.map(x=>`<span class="chip">${esc(x)}</span>`).join('')}</div></details>`:''}
+        ${n.defined.length?`<details class="detail-section detail-collapsible">${detailSummary(t('definedValues'),copies,n.defined.join('\n'))}<div class="detail-content chip-list">${n.defined.map(x=>`<span class="chip">${esc(x)}</span>`).join('')}</div></details>`:''}
+        <section class="detail-section">${detailHeading(t('optimizerEstimates'),copies,detailTsv(estimates))}${detailRows(estimates)}</section>
+        ${n.spills.length?`<section class="detail-section">${detailHeading('Spill to tempdb',copies,n.spills.map(x=>detailTsv(Object.entries(x))).join('\n\n'))}${n.spills.map(x=>detailRows(Object.entries(x))).join('')}</section>`:''}
+        <section class="detail-section">${detailHeading(t('showPlanAttributes'),copies,detailTsv(attributeRows))}${detailRows(attributeRows)}</section>
+        ${threadTables.length>1?`<section class="detail-section">${detailHeading(`${t('threads')} (${threadTables.length})`,copies,threadTables.map(rows=>detailTsv(rows)).join('\n\n'))}${threadTables.map(rows=>detailRows(rows)).join('')}</section>`:''}`;
+      state.detailCopies = copies;
     }
 
     function centerGraphNode(id, behavior = 'smooth') {
       if (!id) return;
       const card = $(`.node-card[data-id="${CSS.escape(id)}"]`, els.graph);
       if (!card) return;
-      const left = (card.offsetLeft + card.offsetWidth / 2) * state.zoom - els.canvasWrap.clientWidth / 2;
+      updateGraphViewport();
+      const visibleWidth = Math.max(1, els.canvasWrap.clientWidth - graphDetailsInset());
+      const left = (card.offsetLeft + card.offsetWidth / 2) * state.zoom - visibleWidth / 2;
       const top = (card.offsetTop + card.offsetHeight / 2) * state.zoom - els.canvasWrap.clientHeight / 2;
-      els.canvasWrap.scrollTo({left:Math.max(0,left),top:Math.max(0,top),behavior});
+      const maxLeft = Math.max(0, els.graphStage.scrollWidth - els.canvasWrap.clientWidth);
+      const maxTop = Math.max(0, els.graphStage.scrollHeight - els.canvasWrap.clientHeight);
+      els.canvasWrap.scrollTo({left:Math.max(0,Math.min(maxLeft,left)),top:Math.max(0,Math.min(maxTop,top)),behavior});
     }
 
     function centerTreeNode(id, behavior = 'smooth') {
@@ -1160,10 +1217,12 @@
       if(node) {
         renderDetails(node);
         if(!state.detailsLocked) els.detailsDrawer.classList.add('open');
+        updateGraphViewport();
         if(centerGraph) requestAnimationFrame(() => centerGraphNode(node.id));
         if(centerTree) requestAnimationFrame(() => centerTreeNode(node.id));
       } else {
         els.detailsDrawer.classList.remove('open');
+        updateGraphViewport();
       }
     }
 
@@ -1218,8 +1277,7 @@
       els.queryModal.classList.add('open');
     }
 
-    async function copyModalText() {
-      const value = els.queryText.textContent;
+    async function copyText(value) {
       try {
         let copied = false;
         if (navigator.clipboard?.writeText) {
@@ -1243,6 +1301,10 @@
       }
     }
 
+    function copyModalText() {
+      return copyText(els.queryText.textContent);
+    }
+
     async function readFile(file) {
       if(!file) return;
       if(file.size > 30*1024*1024) { toast(t('fileTooLarge'),true); return; }
@@ -1256,11 +1318,13 @@
       els.hideDetailsCheck.checked = locked;
       els.detailsHandle.classList.toggle('visible', locked && state.screen === 'viewer');
       if (locked) els.detailsDrawer.classList.remove('open');
+      updateGraphViewport();
     }
 
     function updateZoom() {
       els.graph.style.transform = Math.abs(state.zoom - 1) < .001 ? '' : `scale(${state.zoom})`;
       els.zoomLabel.textContent = `${Math.round(state.zoom * 100)}%`;
+      updateGraphViewport();
     }
 
     async function historyClick(e) {
@@ -1291,9 +1355,10 @@
     els.expandAllBtn.onclick=()=>{if(!state.collapsedIds.size)return;state.collapsedIds.clear();renderTree();};
     els.tree.addEventListener('click',e=>{const toggle=e.target.closest('[data-toggle]');if(toggle){e.preventDefault();e.stopPropagation();state.dragMoved=false;const id=toggle.dataset.toggle;if(state.collapsedIds.has(id))state.collapsedIds.delete(id);else state.collapsedIds.add(id);renderTree();return;}if(state.dragMoved){state.dragMoved=false;return;}const row=e.target.closest('[data-id]');if(row)selectNode(row.dataset.id,{centerGraph:true});});
     els.canvasWrap.addEventListener('click',e=>{if(state.dragMoved){state.dragMoved=false;return;}const card=e.target.closest('.node-card[data-id]');selectNode(card?.dataset.id||null,{centerTree:Boolean(card)});});
-    els.closeDetails.onclick=()=>els.detailsDrawer.classList.remove('open');
+    els.drawerBody.addEventListener('click',e=>{const button=e.target.closest('[data-copy-detail]');if(!button)return;e.preventDefault();e.stopPropagation();const key=button.dataset.copyDetail;if(state.detailCopies.has(key))copyText(state.detailCopies.get(key));});
+    els.closeDetails.onclick=()=>{els.detailsDrawer.classList.remove('open');updateGraphViewport();};
     els.hideDetailsCheck.onchange=()=>setDetailsLocked(els.hideDetailsCheck.checked);
-    els.detailsHandle.onclick=()=>{setDetailsLocked(false);const n=selectedNode();if(n){renderDetails(n);els.detailsDrawer.classList.add('open');}};
+    els.detailsHandle.onclick=()=>{setDetailsLocked(false);const n=selectedNode();if(n){renderDetails(n);els.detailsDrawer.classList.add('open');updateGraphViewport();}};
     els.fitBtn.onclick=()=>{state.zoom=1;updateZoom();const rootId=currentStatement()?.roots[0]?.id;if(rootId)requestAnimationFrame(()=>centerGraphNode(rootId));else els.canvasWrap.scrollTo({left:0,top:0,behavior:'smooth'});};
     els.queryBtn.onclick=()=>{if(els.queryBtn.disabled)return;const s=currentStatement();openTextModal('queryText',s?.batchText||s?.text);};
     els.rawPlanBtn.onclick=()=>openTextModal('rawPlan',state.currentXml);
@@ -1305,7 +1370,7 @@
     els.homeHistoryList.addEventListener('click',historyClick);
     els.clearHistoryBtn.onclick=els.homeClearHistoryBtn.onclick=clearHistory;
     els.languageSelect.onchange=()=>{locale=els.languageSelect.value;localStorage.setItem('sql-plan-language',locale);applyI18n();};
-    window.addEventListener('keydown',e=>{if(e.key==='Escape'){els.queryModal.classList.remove('open');els.detailsDrawer.classList.remove('open');openHistory(false);}});
+    window.addEventListener('keydown',e=>{if(e.key==='Escape'){els.queryModal.classList.remove('open');els.detailsDrawer.classList.remove('open');updateGraphViewport();openHistory(false);}});
 
     let graphPan = null, graphPanFrame = 0;
     const applyGraphPan = () => {
@@ -1330,6 +1395,9 @@
     els.resizer.addEventListener('pointerdown',e=>{resizing=true;els.resizer.setPointerCapture(e.pointerId);els.resizer.classList.add('dragging');});
     els.resizer.addEventListener('pointermove',e=>{if(!resizing)return;const width=Math.max(270,Math.min(window.innerWidth*.65,e.clientX));document.documentElement.style.setProperty('--left-width',width+'px');});
     els.resizer.addEventListener('pointerup',()=>{resizing=false;els.resizer.classList.remove('dragging');});
+
+    if ('ResizeObserver' in window) new ResizeObserver(updateGraphViewport).observe(els.canvasWrap);
+    else window.addEventListener('resize', updateGraphViewport);
 
     applyI18n();
     refreshHistory().catch(()=>{});

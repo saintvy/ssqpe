@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.8] - 2026-07-28
+
+### Added
+
+- Added per-section copy controls to operator details, using two-column TSV for property tables and line-oriented plain text for expressions and column lists.
+
+### Fixed
+
+- Graph camera bounds now follow the rendered zoom level and reserve space for the open details drawer, preventing hidden rightmost nodes and excessive empty panning at reduced zoom.
+
 ## [0.2.7] - 2026-07-28
 
 ### Fixed
