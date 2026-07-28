@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-07-28
+
 ### Added
 
 - Added a Show Raw Plan viewer for the complete source XML and Copy controls to both raw-plan and SQL-text viewers, including an offline clipboard fallback.
