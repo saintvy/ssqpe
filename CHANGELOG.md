@@ -6,9 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.10] - 2026-07-28
+
 ### Added
 
 - Added inline plan renaming from the viewer header, with saved-history synchronization.
+- Added persistent drag-and-drop ordering for saved plans on the home screen.
 
 ### Changed
 

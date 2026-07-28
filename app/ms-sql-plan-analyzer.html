@@ -208,6 +208,10 @@
     .history-list { overflow: auto; padding: 8px; }
     .history-item { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; padding: 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; }
     .history-item:hover { background: var(--surface-2); border-color: var(--border); }
+    #homeHistoryList .history-item[draggable="true"] { cursor: grab; user-select: none; }
+    #homeHistoryList .history-item.dragging { opacity: .42; cursor: grabbing; }
+    #homeHistoryList .history-item.drop-before { box-shadow: inset 0 2px 0 var(--accent); }
+    #homeHistoryList .history-item.drop-after { box-shadow: inset 0 -2px 0 var(--accent); }
     .history-name { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .history-meta { color: var(--muted); font-size: 11px; margin-top: 3px; }
     .history-delete { align-self: center; border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 6px; }
@@ -238,7 +242,7 @@
 <body>
   <div class="app">
     <header class="topbar">
-      <div class="brand"><span class="logo">SSQPE</span><span class="brand-title">SQL Server Query Plan Explorer</span><small class="app-version">v0.2.9</small></div>
+      <div class="brand"><span class="logo">SSQPE</span><span class="brand-title">SQL Server Query Plan Explorer</span><small class="app-version">v0.2.10</small></div>
       <div class="top-actions">
         <button class="btn hidden" id="menuBtn" data-i18n="backToMenu"></button>
         <button class="btn hidden" id="historyBtn"><span data-i18n="history"></span> <span id="historyCount"></span></button>
@@ -335,7 +339,7 @@
         ioAndCache: 'Ввод-вывод и кеш', logicalReads: 'Логические чтения', physicalReads: 'Физические чтения', readAhead: 'Упреждающие чтения', lobLogicalReads: 'Логические чтения LOB', lobPhysicalReads: 'Физические чтения LOB', scans: 'Сканирования',
         warnings: 'Предупреждения', object: 'Объект', operandsPredicates: 'Операнды и предикаты', definedValues: 'Определяемые значения', optimizerEstimates: 'Оценки оптимизатора', averageRowSize: 'Средний размер строки', estimatedRowsRead: 'Оценка прочитанных строк', tableCardinality: 'Кардинальность таблицы', showPlanAttributes: 'Атрибуты ShowPlan', threads: 'Потоки', thread: 'Поток', elapsed: 'Время',
         reusableSubplan: 'Повторно используемый подплан {number}', calls: 'вызовов',
-        emptyHistory: 'История пока пуста', delete: 'Удалить', historyMeta: '{date} · {statements} запр. · {nodes} узлов',
+        emptyHistory: 'История пока пуста', delete: 'Удалить', historyMeta: '{date} · {statements} запр. · {nodes} узлов', reorderPlan: 'Перетащите, чтобы изменить порядок', historyOrderFailed: 'Не удалось сохранить порядок планов',
         xmlParseError: 'XML не удалось разобрать: {details}', expectedShowPlan: 'Ожидался XML-план SQL Server с корнем <ShowPlanXML>.', noStatements: 'В документе не найден ни один statement или QueryPlan.',
         defaultPlan: 'План SQL Server', pastedPlan: 'Вставленный план', planOpened: 'План открыт: {nodes} операторов', planSaveFailed: 'План открыт, но сохранить историю не удалось', renamePlan: 'Изменить название плана', planRenamed: 'Название плана изменено', planRenameFailed: 'Название изменено, но обновить историю не удалось', pasteFirst: 'Сначала вставьте ShowPlan XML', fileTooLarge: 'Файл больше 30 МБ; откройте более компактный план.', openFailed: 'Не удалось открыть план',
         clearConfirm: 'Удалить все сохранённые планы? Это действие нельзя отменить.', historyCleared: 'История очищена без возможности восстановления',
@@ -356,7 +360,7 @@
         ioAndCache: 'I/O and cache', logicalReads: 'Logical reads', physicalReads: 'Physical reads', readAhead: 'Read-ahead reads', lobLogicalReads: 'LOB logical reads', lobPhysicalReads: 'LOB physical reads', scans: 'Scans',
         warnings: 'Warnings', object: 'Object', operandsPredicates: 'Operands and predicates', definedValues: 'Defined values', optimizerEstimates: 'Optimizer estimates', averageRowSize: 'Average row size', estimatedRowsRead: 'Estimated rows read', tableCardinality: 'Table cardinality', showPlanAttributes: 'ShowPlan attributes', threads: 'Threads', thread: 'Thread', elapsed: 'Elapsed',
         reusableSubplan: 'Reusable subplan {number}', calls: 'calls',
-        emptyHistory: 'History is empty', delete: 'Delete', historyMeta: '{date} · {statements} queries · {nodes} nodes',
+        emptyHistory: 'History is empty', delete: 'Delete', historyMeta: '{date} · {statements} queries · {nodes} nodes', reorderPlan: 'Drag to reorder', historyOrderFailed: 'Could not save plan order',
         xmlParseError: 'Could not parse XML: {details}', expectedShowPlan: 'Expected a SQL Server XML plan with a <ShowPlanXML> root.', noStatements: 'No statement or QueryPlan was found in the document.',
         defaultPlan: 'SQL Server plan', pastedPlan: 'Pasted plan', planOpened: 'Plan opened: {nodes} operators', planSaveFailed: 'The plan opened, but history could not be saved', renamePlan: 'Rename plan', planRenamed: 'Plan renamed', planRenameFailed: 'The plan was renamed, but history could not be updated', pasteFirst: 'Paste ShowPlan XML first', fileTooLarge: 'The file is larger than 30 MB; open a more compact plan.', openFailed: 'Could not open the plan',
         clearConfirm: 'Delete every saved plan? This cannot be undone.', historyCleared: 'History was permanently cleared',
@@ -795,14 +799,25 @@
         });
       }
       const fallbackKey = 'sql-server-plan-explorer-history';
+      const ordered = items => items.sort((a,b) => {
+        const aOrder=optionalNumber(a.sortOrder),bOrder=optionalNumber(b.sortOrder);
+        if(aOrder!==null&&bOrder!==null&&aOrder!==bOrder)return aOrder-bOrder;
+        if(aOrder!==null&&bOrder===null)return -1;
+        if(aOrder===null&&bOrder!==null)return 1;
+        return b.openedAt-a.openedAt;
+      });
       return {
         async list() {
-          try { const items = await tx('readonly', s => s.getAll()); return (items || []).sort((a,b) => b.openedAt - a.openedAt); }
-          catch { try { return JSON.parse(localStorage.getItem(fallbackKey) || '[]'); } catch { return []; } }
+          try { const items = await tx('readonly', s => s.getAll()); return ordered(items || []); }
+          catch { try { return ordered(JSON.parse(localStorage.getItem(fallbackKey) || '[]')); } catch { return []; } }
         },
         async save(item) {
           try { await tx('readwrite', s => s.put(item)); }
           catch { const items = await this.list(); const next = [item, ...items.filter(x => x.id !== item.id)].slice(0,10); localStorage.setItem(fallbackKey, JSON.stringify(next)); }
+        },
+        async saveOrder(items) {
+          try { await tx('readwrite', store => { items.forEach(item => store.put(item)); }); }
+          catch { localStorage.setItem(fallbackKey, JSON.stringify(items.slice(0,10))); }
         },
         async remove(id) {
           try { await tx('readwrite', s => s.delete(id)); }
@@ -850,7 +865,14 @@
       if (save) {
         try {
           const id = await hashText(xml);
-          await historyStore.save({ id, name: fileName, xml, openedAt: Date.now(), nodeCount: parsed.nodeCount, statements: parsed.statements.length, actual: parsed.actual });
+          let savedPlans = await historyStore.list();
+          if (savedPlans.some(item => optionalNumber(item.sortOrder) === null)) {
+            savedPlans = savedPlans.map((item,index) => ({...item,sortOrder:index}));
+            await historyStore.saveOrder(savedPlans);
+          }
+          const previous = savedPlans.find(item => item.id === id);
+          const firstOrder = Math.min(0,...savedPlans.map(item => optionalNumber(item.sortOrder) ?? 0));
+          await historyStore.save({ id, name: fileName, xml, openedAt: Date.now(), nodeCount: parsed.nodeCount, statements: parsed.statements.length, actual: parsed.actual, sortOrder:previous?.sortOrder ?? firstOrder-1 });
           await refreshHistory();
         } catch (err) { toast(t('planSaveFailed'), true); }
       }
@@ -1325,13 +1347,29 @@
 
     function renderHistoryLists() {
       if (!els.historyList || !els.homeHistoryList) return;
-      const html = state.history.length ? state.history.map(item => {
+      const historyHtml = reorderable => state.history.length ? state.history.map(item => {
         const date = new Date(item.openedAt).toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-GB');
-        return `<div class="history-item" data-id="${esc(item.id)}"><div><div class="history-name">${esc(item.name)}</div><div class="history-meta">${esc(t('historyMeta',{date,statements:item.statements||'?',nodes:item.nodeCount??'?'}))}</div></div><button class="history-delete" data-delete="${esc(item.id)}" title="${esc(t('delete'))}" aria-label="${esc(t('delete'))}">×</button></div>`;
+        return `<div class="history-item" data-id="${esc(item.id)}"${reorderable?` draggable="true" title="${esc(t('reorderPlan'))}"`:''}><div><div class="history-name">${esc(item.name)}</div><div class="history-meta">${esc(t('historyMeta',{date,statements:item.statements||'?',nodes:item.nodeCount??'?'}))}</div></div><button class="history-delete" data-delete="${esc(item.id)}" title="${esc(t('delete'))}" aria-label="${esc(t('delete'))}">×</button></div>`;
       }).join('') : `<div style="padding:22px;color:var(--muted);text-align:center">${esc(t('emptyHistory'))}</div>`;
-      els.historyList.innerHTML = html;
-      els.homeHistoryList.innerHTML = html;
+      els.historyList.innerHTML = historyHtml(false);
+      els.homeHistoryList.innerHTML = historyHtml(true);
       els.historyCount.textContent = state.history.length ? `(${state.history.length})` : '';
+    }
+
+    function clearHistoryDropMarkers() {
+      $$('.history-item',els.homeHistoryList).forEach(item=>item.classList.remove('drop-before','drop-after','dragging'));
+    }
+
+    async function saveHistoryOrder(next) {
+      state.history = next.map((item,index)=>({...item,sortOrder:index}));
+      renderHistoryLists();
+      try {
+        await historyStore.saveOrder(state.history);
+        await refreshHistory();
+      } catch {
+        toast(t('historyOrderFailed'),true);
+        await refreshHistory();
+      }
     }
 
     async function refreshHistory() {
@@ -1425,7 +1463,9 @@
       updateGraphViewport();
     }
 
+    let suppressHistoryClick = false;
     async function historyClick(e) {
+      if(suppressHistoryClick)return;
       const del=e.target.closest('[data-delete]');
       if(del){e.stopPropagation();await historyStore.remove(del.dataset.delete);await refreshHistory();return;}
       const item=e.target.closest('.history-item');
@@ -1448,9 +1488,10 @@
     els.menuBtn.onclick = showHome;
     els.fileInput.onchange = () => { readFile(els.fileInput.files[0]); els.fileInput.value=''; };
     els.parsePasteBtn.onclick = async () => { const xml=els.pasteBox.value.trim(); if(!xml)return toast(t('pasteFirst'),true); const name=els.planNameInput.value.trim()||`${t('pastedPlan')}.sqlplan`; try{await loadXml(xml,name,true);}catch(err){toast(err.message,true);} };
-    ['dragenter','dragover'].forEach(type => document.addEventListener(type,e=>{e.preventDefault();els.dropCard.classList.add('drag');}));
-    ['dragleave','drop'].forEach(type => document.addEventListener(type,e=>{e.preventDefault();els.dropCard.classList.remove('drag');}));
-    document.addEventListener('drop',e=>readFile(e.dataTransfer.files[0]));
+    const isFileDrag=e=>Array.from(e.dataTransfer?.types||[]).includes('Files');
+    ['dragenter','dragover'].forEach(type => document.addEventListener(type,e=>{if(!isFileDrag(e))return;e.preventDefault();els.dropCard.classList.add('drag');}));
+    ['dragleave','drop'].forEach(type => document.addEventListener(type,e=>{if(!isFileDrag(e))return;e.preventDefault();els.dropCard.classList.remove('drag');}));
+    document.addEventListener('drop',e=>{if(isFileDrag(e))readFile(e.dataTransfer.files[0]);});
     els.statementTabs.addEventListener('click',e=>{ const b=e.target.closest('[data-index]'); if(!b)return; state.statementIndex=Number(b.dataset.index); const s=currentStatement(); state.selectedId=null; state.collapsedIds.clear(); els.detailsDrawer.classList.remove('open'); renderAll(); const rootId=s.roots[0]?.id; if(rootId)requestAnimationFrame(()=>centerGraphNode(rootId,'auto')); });
     els.metricSwitch.addEventListener('click',e=>{ const b=e.target.closest('[data-metric]'); if(!b)return; state.metric=b.dataset.metric; renderTree(); });
     els.expandAllBtn.onclick=()=>{if(!state.collapsedIds.size)return;state.collapsedIds.clear();renderTree();};
@@ -1469,6 +1510,11 @@
     els.historyBtn.onclick=()=>openHistory(true); els.closeHistory.onclick=els.overlay.onclick=()=>openHistory(false);
     els.historyList.addEventListener('click',historyClick);
     els.homeHistoryList.addEventListener('click',historyClick);
+    let historyDrag = null;
+    els.homeHistoryList.addEventListener('dragstart',e=>{const item=e.target.closest('.history-item[draggable="true"]');if(!item)return;historyDrag={id:item.dataset.id,targetId:null,after:false};item.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',item.dataset.id);});
+    els.homeHistoryList.addEventListener('dragover',e=>{if(!historyDrag)return;e.preventDefault();e.stopPropagation();e.dataTransfer.dropEffect='move';$$('.history-item',els.homeHistoryList).forEach(item=>item.classList.remove('drop-before','drop-after'));const target=e.target.closest('.history-item[data-id]');if(!target||target.dataset.id===historyDrag.id){historyDrag.targetId=null;return;}const rect=target.getBoundingClientRect();historyDrag.targetId=target.dataset.id;historyDrag.after=e.clientY>rect.top+rect.height/2;target.classList.add(historyDrag.after?'drop-after':'drop-before');});
+    els.homeHistoryList.addEventListener('drop',e=>{if(!historyDrag)return;e.preventDefault();e.stopPropagation();const {id,targetId,after}=historyDrag;const source=state.history.find(item=>item.id===id);const next=state.history.filter(item=>item.id!==id);if(source){let index=targetId?next.findIndex(item=>item.id===targetId):next.length;if(index<0)index=next.length;if(targetId&&after)index++;next.splice(index,0,source);saveHistoryOrder(next);}suppressHistoryClick=true;setTimeout(()=>{suppressHistoryClick=false;},0);historyDrag=null;clearHistoryDropMarkers();});
+    els.homeHistoryList.addEventListener('dragend',()=>{historyDrag=null;clearHistoryDropMarkers();});
     els.clearHistoryBtn.onclick=els.homeClearHistoryBtn.onclick=clearHistory;
     els.languageSelect.onchange=()=>{locale=els.languageSelect.value;localStorage.setItem('sql-plan-language',locale);applyI18n();};
     window.addEventListener('keydown',e=>{if(e.key==='Escape'){els.queryModal.classList.remove('open');els.detailsDrawer.classList.remove('open');updateGraphViewport();openHistory(false);}});

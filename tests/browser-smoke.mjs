@@ -198,7 +198,7 @@ try {
   if (structure.detailsButton || !structure.flagSvg || structure.emojiLanguage) failures.push(`Toolbar or embedded language flags failed: ${JSON.stringify(structure)}`);
   if (structure.buildText!=='SQL Server build test' || !structure.buildTitle || structure.stats.length!==3 || structure.stats[0].text!=='Total time: 5.85 min' || structure.stats[1].text!=='Planning: 23 ms' || structure.stats[2].text!=='Peak query memory: 2.00 MB' || !structure.stats[2].title.includes('MaxUsedMemory')) failures.push(`Plan summary metrics failed: ${JSON.stringify(structure)}`);
   if (Math.abs(structure.renameWidth-22)>1 || Math.abs(structure.renameHeight-22)>1 || structure.renameRightError>1 || !structure.renameIcon || structure.renameTitle!=='Rename plan' || structure.renameAria!=='Rename plan') failures.push(`Plan rename control layout failed: ${JSON.stringify(structure)}`);
-  if (structure.version!=='v0.2.9' || structure.versionFont>11 || structure.versionColor==='rgb(237, 241, 247)') failures.push(`Application version label failed: ${JSON.stringify(structure)}`);
+  if (structure.version!=='v0.2.10' || structure.versionFont>11 || structure.versionColor==='rgb(237, 241, 247)') failures.push(`Application version label failed: ${JSON.stringify(structure)}`);
   if (structure.toggleFont < 20 || (structure.toggleOpacity !== '0' && !structure.hoverNone) || structure.barBackground === 'rgba(0, 0, 0, 0)' || structure.barMask === 'rgba(0, 0, 0, 0)' || structure.metricsBackground === 'rgba(0, 0, 0, 0)' || Number(structure.metricsZ) <= Number(structure.nameZ) || structure.metricsWidth <= structure.contentsWidth) failures.push(`Tree controls or opaque metric column failed: ${JSON.stringify(structure)}`);
   const subplanPacking = await evaluate(`(() => {
     const zones=Array.from(document.querySelectorAll('.subplan-zone')).map(zone=>({number:zone.dataset.subplanZone,left:zone.offsetLeft,right:zone.offsetLeft+zone.offsetWidth,top:zone.offsetTop,bottom:zone.offsetTop+zone.offsetHeight,center:zone.offsetLeft+zone.offsetWidth/2}));
@@ -402,6 +402,23 @@ try {
   const longQuery=textViewers.query,rawPlan=textViewers.raw;
   if (!longQuery.exact || longQuery.length!==longSqlBatch.length || !longQuery.hasTail || longQuery.tabs!==2 || !longQuery.vertical || !longQuery.horizontal || !longQuery.atBottom || !longQuery.atRight || !longQuery.insideViewport || !['auto','scroll'].includes(longQuery.overflowX) || !longQuery.copied || longQuery.title!=='Query text' || longQuery.copyLabel!=='Copy') failures.push(`Long SQL batch viewer failed: ${JSON.stringify(longQuery)}`);
   if (!rawPlan.exact || !rawPlan.horizontal || !rawPlan.scrolled || !rawPlan.copied || !rawPlan.fallbackCopied || rawPlan.title!=='Raw XML plan' || rawPlan.button!=='Show raw plan' || !rawPlan.adjacent) failures.push(`Raw plan viewer failed: ${JSON.stringify(rawPlan)}`);
+  const historyReorder = await evaluate(`(async()=>{
+    document.getElementById('closeQuery').click();document.getElementById('menuBtn').click();await new Promise(resolve=>setTimeout(resolve,150));
+    const list=document.getElementById('homeHistoryList'),items=Array.from(list.querySelectorAll('.history-item')),before=items.map(item=>item.dataset.id);
+    if(items.length<3)return {before,after:[],reason:'too few items'};
+    const source=items[0],target=items[2],rect=target.getBoundingClientRect(),transfer=new DataTransfer();
+    source.dispatchEvent(new DragEvent('dragstart',{bubbles:true,cancelable:true,dataTransfer:transfer}));
+    target.dispatchEvent(new DragEvent('dragover',{bubbles:true,cancelable:true,dataTransfer:transfer,clientY:rect.bottom-1}));
+    target.dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer,clientY:rect.bottom-1}));
+    await new Promise(resolve=>setTimeout(resolve,250));
+    const after=Array.from(list.querySelectorAll('.history-item')).map(item=>item.dataset.id);
+    return {before,after,allDraggable:Array.from(list.querySelectorAll('.history-item')).every(item=>item.draggable&&item.title==='Drag to reorder'),drawerDraggable:document.querySelectorAll('#historyList .history-item[draggable="true"]').length,markers:list.querySelectorAll('.dragging,.drop-before,.drop-after').length};
+  })()`);
+  const expectedHistoryOrder=historyReorder.before.length>=3?[historyReorder.before[1],historyReorder.before[2],historyReorder.before[0],...historyReorder.before.slice(3)]:[];
+  if (!expectedHistoryOrder.length || JSON.stringify(historyReorder.after)!==JSON.stringify(expectedHistoryOrder) || !historyReorder.allDraggable || historyReorder.drawerDraggable || historyReorder.markers) failures.push(`Home history drag reorder failed: ${JSON.stringify(historyReorder)}`);
+  await evaluate('location.reload();true');
+  const persistedHistoryOrder = await retry(async()=>{const value=await evaluate(`Array.from(document.querySelectorAll('#homeHistoryList .history-item')).map(item=>item.dataset.id)`);if(value.length!==expectedHistoryOrder.length)throw new Error('History has not reloaded');return value;},120);
+  if (JSON.stringify(persistedHistoryOrder)!==JSON.stringify(expectedHistoryOrder)) failures.push(`History order was not persisted: ${JSON.stringify({expectedHistoryOrder,persistedHistoryOrder})}`);
   if (plans.length > 10 && (!timeAlerts || !rowAlerts || maxIndent <= 105)) failures.push(`PEV2 alerts or deep indentation missing: ${JSON.stringify({timeAlerts,rowAlerts,maxIndent})}`);
   socket.close();
   if (browserErrors.length) failures.push(...browserErrors.map(x => `Browser exception: ${x}`));

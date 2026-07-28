@@ -98,7 +98,7 @@ The repository includes three dependency-free GitHub workflows:
 For example, after updating the changelog:
 
 ```bash
-git tag v0.2.9
+git tag v0.2.10
 git push origin main --tags
 ```
 
