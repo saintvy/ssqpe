@@ -108,6 +108,24 @@
     .tree-bar .rows-estimate.severity-4 { background: #68252c; }
     .tree-bar .rows-actual.severity-4 { background: #ff5964; }
     .tree-value { flex: 0 0 72px; width: 72px; text-align: right; color: #c4cbd8; font-variant-numeric: tabular-nums; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wait-tree { --wait-row-bg: var(--surface); margin-bottom: 7px; padding-bottom: 7px; border-bottom: 1px solid var(--border); }
+    .wait-row { position: relative; width: 100%; height: 32px; display: flex; align-items: center; padding: 0 9px; background: var(--wait-row-bg); }
+    .wait-row.wait-heading { height: 29px; color: #cbd4e3; font-weight: 700; }
+    .wait-name { min-width: 0; flex: 1 1 auto; padding-left: calc(var(--depth) * 15px + 11px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .wait-stat-name { position: relative; cursor: help; }
+    .wait-stat-name::after { content: attr(data-tip); position: absolute; left: calc(var(--depth) * 15px + 11px); bottom: calc(100% + 5px); width: max-content; max-width: 280px; padding: 5px 7px; border: 1px solid #516079; border-radius: 5px; background: #111722; color: var(--text); font-size: 11px; font-weight: 500; line-height: 1.35; white-space: normal; opacity: 0; transform: translateY(3px); pointer-events: none; transition: .12s; box-shadow: 0 5px 14px rgba(0,0,0,.35); z-index: 25; }
+    .wait-stat-name:hover::after, .wait-stat-name:focus-visible::after { opacity: 1; transform: translateY(0); }
+    .wait-metrics { position: sticky; right: 0; z-index: 5; flex: 0 0 232px; width: 232px; height: 100%; margin-right: -9px; padding: 0 9px; display: grid; grid-template-columns: repeat(2, 1fr); align-items: center; gap: 7px; background: var(--wait-row-bg); }
+    .wait-metric-label { text-align: center; font-size: 10px; font-weight: 600; }
+    .wait-metric-label.time { color: var(--time); }
+    .wait-metric-label.count { color: var(--warning); }
+    .wait-scale { position: relative; height: 19px; overflow: hidden; border-radius: 4px; box-shadow: inset 0 0 0 1px #344052; font-variant-numeric: tabular-nums; }
+    .wait-scale.time { background: rgba(79,208,164,.22); }
+    .wait-scale.count { background: rgba(253,219,97,.22); }
+    .wait-scale-fill { position: absolute; inset: 0 auto 0 0; }
+    .wait-scale.time .wait-scale-fill { background: #4fd0a4; }
+    .wait-scale.count .wait-scale-fill { background: #fddb61; }
+    .wait-scale-value { position: absolute; inset: 0 5px; display: flex; align-items: center; justify-content: flex-end; color: #eef4fa; font-size: 10px; text-shadow: 0 1px 2px #08100e; white-space: nowrap; }
     .call-mark { color: var(--accent-2); margin-right: 4px; }
     .main { min-width: 0; min-height: 0; position: relative; overflow: hidden; background: radial-gradient(circle at 10% 0%, #192233 0, transparent 38%), var(--bg); }
     .empty { height: 100%; display: grid; place-items: center; padding: 30px; }
@@ -242,7 +260,7 @@
 <body>
   <div class="app">
     <header class="topbar">
-      <div class="brand"><span class="logo">SSQPE</span><span class="brand-title">SQL Server Query Plan Explorer</span><small class="app-version">v0.2.11</small></div>
+      <div class="brand"><span class="logo">SSQPE</span><span class="brand-title">SQL Server Query Plan Explorer</span><small class="app-version">v0.3.0</small></div>
       <div class="top-actions">
         <button class="btn hidden" id="menuBtn" data-i18n="backToMenu"></button>
         <button class="btn hidden" id="historyBtn"><span data-i18n="history"></span> <span id="historyCount"></span></button>
@@ -326,7 +344,7 @@
     const I18N = {
       ru: {
         languageName: 'Русский', backToMenu: 'Возврат в меню', history: 'История', language: 'Язык интерфейса', savedPlans: 'Сохранённые планы', clear: 'Очистить',
-        expandAll: 'Развернуть всё', time: 'Время', cost: 'Стоимость', rows: 'Строки', resizeSidebar: 'Изменить ширину панели',
+        expandAll: 'Развернуть всё', time: 'Время', cost: 'Стоимость', rows: 'Строки', stats: 'Статистика', waitStats: 'WaitStats', waitCount: 'WaitCount', maximum: 'Максимум', resizeSidebar: 'Изменить ширину панели',
         openExecutionPlan: 'Откройте план выполнения SQL Server', dropDescription: 'Перетащите сюда файл <b>.sqlplan</b> из SSMS, выберите его с диска или вставьте ShowPlan XML. Данные не покидают браузер.',
         planNamePlaceholder: 'Имя плана для истории (необязательно)', chooseFile: 'Выбрать файл', pastePlaceholder: 'Вставьте XML, начинающийся с <ShowPlanXML …>', parseXml: 'Разобрать XML',
         resetView: 'Сбросить вид', details: 'Детали', keepDetailsHidden: 'Скрыть детали', showDetails: 'Показать детали', close: 'Закрыть', collapseSubtree: 'Свернуть дочернее поддерево', expandSubtree: 'Развернуть дочернее поддерево', queryText: 'Текст запроса', showQuery: 'Показать SQL-текст', queryUnavailable: 'SQL-текст отсутствует', showRawPlan: 'Показать исходный план', rawPlan: 'Исходный XML-план', copy: 'Скопировать', copySection: 'Скопировать раздел', copied: 'Текст скопирован', copyFailed: 'Не удалось скопировать текст',
@@ -342,12 +360,13 @@
         emptyHistory: 'История пока пуста', delete: 'Удалить', historyMeta: '{date} · {statements} запр. · {nodes} узлов', reorderPlan: 'Перетащите, чтобы изменить порядок', historyOrderFailed: 'Не удалось сохранить порядок планов',
         xmlParseError: 'XML не удалось разобрать: {details}', expectedShowPlan: 'Ожидался XML-план SQL Server с корнем <ShowPlanXML>.', noStatements: 'В документе не найден ни один statement или QueryPlan.',
         defaultPlan: 'План SQL Server', pastedPlan: 'Вставленный план', planOpened: 'План открыт: {nodes} операторов', planSaveFailed: 'План открыт, но сохранить историю не удалось', renamePlan: 'Изменить название плана', planRenamed: 'Название плана изменено', planRenameFailed: 'Название изменено, но обновить историю не удалось', pasteFirst: 'Сначала вставьте ShowPlan XML', fileTooLarge: 'Файл больше 30 МБ; откройте более компактный план.', openFailed: 'Не удалось открыть план',
+        wait_ASYNC_NETWORK_IO: 'Ожидание, пока клиент читает отправляемые результаты.', wait_PAGEIOLATCH_SH: 'Ожидание чтения страницы данных с диска в память.', wait_RESERVED_MEMORY_ALLOCATION_EXT: 'Ожидание резервирования внутренней памяти для выполнения операции.', wait_SOS_SCHEDULER_YIELD: 'Уступка процессора после исчерпания кванта выполнения.', wait_MEMORY_ALLOCATION_EXT: 'Ожидание выделения внутренней памяти компонентами SQL Server.', waitUnknown: 'Ожидание SQL Server типа {type}.',
         clearConfirm: 'Удалить все сохранённые планы? Это действие нельзя отменить.', historyCleared: 'История очищена без возможности восстановления',
         minute: 'мин', second: 'с', millisecond: 'мс', gigabyte: 'ГБ', megabyte: 'МБ', kilobyte: 'КБ', missing: '—'
       },
       en: {
         languageName: 'English', backToMenu: 'Back to menu', history: 'History', language: 'Interface language', savedPlans: 'Saved plans', clear: 'Clear',
-        expandAll: 'Expand all', time: 'Time', cost: 'Cost', rows: 'Rows', resizeSidebar: 'Resize sidebar',
+        expandAll: 'Expand all', time: 'Time', cost: 'Cost', rows: 'Rows', stats: 'Stats', waitStats: 'WaitStats', waitCount: 'WaitCount', maximum: 'Maximum', resizeSidebar: 'Resize sidebar',
         openExecutionPlan: 'Open a SQL Server execution plan', dropDescription: 'Drop an SSMS <b>.sqlplan</b> file here, choose one from disk, or paste ShowPlan XML. Your data never leaves the browser.',
         planNamePlaceholder: 'Plan name for history (optional)', chooseFile: 'Choose file', pastePlaceholder: 'Paste XML starting with <ShowPlanXML …>', parseXml: 'Parse XML',
         resetView: 'Reset view', details: 'Details', keepDetailsHidden: 'Keep details hidden', showDetails: 'Show details', close: 'Close', collapseSubtree: 'Collapse child subtree', expandSubtree: 'Expand child subtree', queryText: 'Query text', showQuery: 'Show SQL text', queryUnavailable: 'SQL text unavailable', showRawPlan: 'Show raw plan', rawPlan: 'Raw XML plan', copy: 'Copy', copySection: 'Copy section', copied: 'Text copied', copyFailed: 'Could not copy text',
@@ -363,6 +382,7 @@
         emptyHistory: 'History is empty', delete: 'Delete', historyMeta: '{date} · {statements} queries · {nodes} nodes', reorderPlan: 'Drag to reorder', historyOrderFailed: 'Could not save plan order',
         xmlParseError: 'Could not parse XML: {details}', expectedShowPlan: 'Expected a SQL Server XML plan with a <ShowPlanXML> root.', noStatements: 'No statement or QueryPlan was found in the document.',
         defaultPlan: 'SQL Server plan', pastedPlan: 'Pasted plan', planOpened: 'Plan opened: {nodes} operators', planSaveFailed: 'The plan opened, but history could not be saved', renamePlan: 'Rename plan', planRenamed: 'Plan renamed', planRenameFailed: 'The plan was renamed, but history could not be updated', pasteFirst: 'Paste ShowPlan XML first', fileTooLarge: 'The file is larger than 30 MB; open a more compact plan.', openFailed: 'Could not open the plan',
+        wait_ASYNC_NETWORK_IO: 'Waiting for the client to consume transmitted query results.', wait_PAGEIOLATCH_SH: 'Waiting for a data page to be read into memory.', wait_RESERVED_MEMORY_ALLOCATION_EXT: 'Waiting to reserve internal memory for an operation.', wait_SOS_SCHEDULER_YIELD: 'Yielding the CPU after exhausting the execution quantum.', wait_MEMORY_ALLOCATION_EXT: 'Waiting for SQL Server components to allocate internal memory.', waitUnknown: 'SQL Server wait of type {type}.',
         clearConfirm: 'Delete every saved plan? This cannot be undone.', historyCleared: 'History was permanently cleared',
         minute: 'min', second: 's', millisecond: 'ms', gigabyte: 'GB', megabyte: 'MB', kilobyte: 'KB', missing: '—'
       }
@@ -709,12 +729,26 @@
         queryPlan: Object.fromEntries(Array.from(queryPlan.attributes).map(a => [a.name, a.value])),
         queryTimeStats: queryTimeStatsEl ? Object.fromEntries(Array.from(queryTimeStatsEl.attributes).map(a => [a.name,a.value])) : {},
         memoryGrant: memoryGrantEl ? Object.fromEntries(Array.from(memoryGrantEl.attributes).map(a => [a.name,a.value])) : {},
+        waitStats: extractWaitStats(queryPlan),
         optimizerStats: first(queryPlan, 'OptimizerStatsUsage') ? all(first(queryPlan, 'OptimizerStatsUsage'),'StatisticsInfo').map(el => Object.fromEntries(Array.from(el.attributes).map(a => [a.name,a.value]))) : [],
         missingIndexes: extractMissingIndexes(queryPlan),
         subplans: []
       };
       detectReusableSubplans(statement);
       return statement;
+    }
+
+    function extractWaitStats(queryPlan) {
+      const totals = new Map();
+      children(queryPlan, 'WaitStats').flatMap(group => children(group, 'Wait')).forEach(wait => {
+        const type = attr(wait, 'WaitType').trim();
+        if (!type) return;
+        const total = totals.get(type) || { type, waitTimeMs: 0, waitCount: 0 };
+        total.waitTimeMs += num(attr(wait, 'WaitTimeMs'));
+        total.waitCount += num(attr(wait, 'WaitCount'));
+        totals.set(type, total);
+      });
+      return Array.from(totals.values()).sort((a, b) => b.waitTimeMs - a.waitTimeMs || b.waitCount - a.waitCount || a.type.localeCompare(b.type));
     }
 
     function extractMissingIndexes(queryPlan) {
@@ -749,7 +783,7 @@
         if (ownedPlans.length) {
           ownedPlans.forEach(q => statements.push(statementForPlan(q, statements.length, batchTextFor(stmt))));
         } else {
-          statements.push({ index: statements.length, type: attr(stmt,'StatementType',lname(stmt).replace(/^Stmt/,'')), text: attr(stmt,'StatementText'), batchText: batchTextFor(stmt), id: attr(stmt,'StatementId',String(statements.length+1)), subtreeCost: num(attr(stmt,'StatementSubTreeCost')), roots: [], queryPlan:{}, queryTimeStats:{}, memoryGrant:{}, optimizerStats:[], missingIndexes:[], subplans:[] });
+          statements.push({ index: statements.length, type: attr(stmt,'StatementType',lname(stmt).replace(/^Stmt/,'')), text: attr(stmt,'StatementText'), batchText: batchTextFor(stmt), id: attr(stmt,'StatementId',String(statements.length+1)), subtreeCost: num(attr(stmt,'StatementSubTreeCost')), roots: [], queryPlan:{}, queryTimeStats:{}, memoryGrant:{}, waitStats:[], optimizerStats:[], missingIndexes:[], subplans:[] });
         }
       });
       queryPlans.filter(q => !nearestStatement(q)).forEach(q => statements.push(statementForPlan(q, statements.length, looseText)));
@@ -976,11 +1010,37 @@
       return `<span class="rows-segment rows-actual severity-${severity}" data-series="actual" style="left:0;width:${actualWidth}%"></span><span class="rows-segment rows-estimate severity-${severity}" data-series="estimate" style="left:${actualWidth}%;width:${estimateWidth-actualWidth}%"></span>`;
     }
 
+    function renderWaitStats(statement) {
+      const waits = statement?.waitStats || [];
+      if (!waits.length) return '';
+      const maxTime = Math.max(...waits.map(wait => wait.waitTimeMs), 0.0000001);
+      const maxCount = Math.max(...waits.map(wait => wait.waitCount), 0.0000001);
+      const description = type => t(`wait_${type}`) === `wait_${type}` ? t('waitUnknown', { type }) : t(`wait_${type}`);
+      const scale = (kind, value, maximum, label, formatted) => {
+        const width = Math.min(100, Math.max(0, 100 * value / maximum));
+        const title = `${label}: ${formatted}; ${t('maximum')}: ${kind === 'time' ? formatMs(maximum) : formatNumber(maximum)}`;
+        return `<div class="wait-scale ${kind}" data-wait-series="${kind}" title="${esc(title)}"><span class="wait-scale-fill" style="width:${width}%"></span><span class="wait-scale-value">${esc(formatted)}</span></div>`;
+      };
+      const rows = waits.map(wait => {
+        const tip = description(wait.type);
+        return `<div class="wait-row" data-wait-type="${esc(wait.type)}" style="--depth:2">
+          <div class="wait-name wait-stat-name" tabindex="0" data-tip="${esc(tip)}" title="${esc(tip)}">${esc(wait.type)}</div>
+          <div class="wait-metrics">${scale('time', wait.waitTimeMs, maxTime, t('time'), formatMs(wait.waitTimeMs))}${scale('count', wait.waitCount, maxCount, t('waitCount'), formatNumber(wait.waitCount))}</div>
+        </div>`;
+      }).join('');
+      return `<section class="wait-tree" aria-label="${esc(t('stats'))}">
+        <div class="wait-row wait-heading" style="--depth:0"><div class="wait-name">${esc(t('stats'))}</div><div class="wait-metrics"></div></div>
+        <div class="wait-row wait-heading" style="--depth:1"><div class="wait-name">${esc(t('waitStats'))}</div><div class="wait-metrics"><span class="wait-metric-label time">${esc(t('time'))}</span><span class="wait-metric-label count">${esc(t('waitCount'))}</span></div></div>
+        ${rows}
+      </section>`;
+    }
+
     function renderTree() {
       const s = currentStatement();
       els.expandAllBtn.disabled = state.collapsedIds.size === 0;
+      const waitStats = state.metric === 'time' ? renderWaitStats(s) : '';
       if (!s || !s.roots.length) {
-        els.tree.innerHTML = `<div style="padding:20px;color:var(--muted)">${esc(t('noStatementGraph'))}</div>`;
+        els.tree.innerHTML = `<div class="tree-content">${waitStats}<div style="padding:20px;color:var(--muted)">${esc(t('noStatementGraph'))}</div></div>`;
         els.metricNotice.textContent = '';
         return;
       }
@@ -1033,8 +1093,10 @@
           <div class="tree-value" title="${esc(t('subtree'))}">${esc(value)}</div></div>
         </div>`;
       }).join('');
-      const contentWidth = 390 + Math.max(0, ...nodes.map(n => n.depth)) * 15;
-      els.tree.innerHTML = `<div class="tree-content" style="width:${contentWidth}px">${rows}</div>`;
+      const operatorWidth = 390 + Math.max(0, ...nodes.map(n => n.depth)) * 15;
+      const waitWidth = state.metric === 'time' && s.waitStats?.length ? 270 + Math.max(...s.waitStats.map(wait => wait.type.length)) * 7 : 0;
+      const contentWidth = Math.max(operatorWidth, waitWidth);
+      els.tree.innerHTML = `<div class="tree-content" style="width:${contentWidth}px">${waitStats}${rows}</div>`;
       $$('#metricSwitch button', els.metricSwitch).forEach(b => b.classList.toggle('active', b.dataset.metric === state.metric));
     }
 

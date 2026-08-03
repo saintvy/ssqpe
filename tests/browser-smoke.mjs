@@ -76,6 +76,19 @@ const repeatedExecutionRows = `<?xml version="1.0"?>
 <RelOp NodeId="1" PhysicalOp="Index Seek" LogicalOp="Index Seek" EstimateRows="1" EstimatedTotalSubtreeCost="0.4"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="39553" ActualExecutions="39553"/></RunTimeInformation><IndexScan/></RelOp>
 <RelOp NodeId="2" PhysicalOp="Index Seek" LogicalOp="Index Seek" EstimateRows="2" EstimatedTotalSubtreeCost="0.4"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="20" ActualExecutions="10"/><RunTimeCountersPerThread Thread="1" ActualRows="60" ActualExecutions="10"/></RunTimeInformation><IndexScan/></RelOp>
 </Concatenation></RelOp></QueryPlan></StmtSimple></Statements></Batch></BatchSequence></ShowPlanXML>`;
+const waitStatsPlan = `<?xml version="1.0"?>
+<ShowPlanXML xmlns="http://schemas.microsoft.com/sqlserver/2004/07/showplan" Version="1.0" Build="test"><BatchSequence><Batch><Statements>
+<StmtSimple StatementId="1" StatementType="SELECT" StatementText="synthetic wait statistics"><QueryPlan>
+<WaitStats>
+<Wait WaitType="ASYNC_NETWORK_IO" WaitTimeMs="1000" WaitCount="5"/>
+<Wait WaitType="PAGEIOLATCH_SH" WaitTimeMs="500" WaitCount="20"/>
+<Wait WaitType="RESERVED_MEMORY_ALLOCATION_EXT" WaitTimeMs="250" WaitCount="10"/>
+<Wait WaitType="SOS_SCHEDULER_YIELD" WaitTimeMs="750" WaitCount="40"/>
+<Wait WaitType="MEMORY_ALLOCATION_EXT" WaitTimeMs="100" WaitCount="2"/>
+<Wait WaitType="UNKNOWN_WAIT_TEST" WaitTimeMs="50" WaitCount="1"/>
+</WaitStats>
+<RelOp NodeId="0" PhysicalOp="Constant Scan" LogicalOp="Constant Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.01"><ConstantScan/></RelOp>
+</QueryPlan></StmtSimple></Statements></Batch></BatchSequence></ShowPlanXML>`;
 const longSqlText = `SELECT /* ${'horizontal-scroll-marker-'.repeat(80)} */\n${Array.from({length:700},(_,index)=>`  CASE WHEN source.[Column${index}] IS NULL THEN ${index} ELSE source.[Column${index}] END AS [Result${index}]`).join(',\n')}\nFROM dbo.Source AS source;`;
 const longSqlTail = `SELECT COUNT_BIG(*) AS [Tail marker] FROM dbo.Source;`;
 const xmlAttr = value => value.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('\r','&#13;').replaceAll('\n','&#10;');
@@ -202,7 +215,7 @@ try {
   if (structure.detailsButton || !structure.flagSvg || structure.emojiLanguage) failures.push(`Toolbar or embedded language flags failed: ${JSON.stringify(structure)}`);
   if (structure.buildText!=='SQL Server build test' || !structure.buildTitle || structure.stats.length!==3 || structure.stats[0].text!=='Total time: 5.85 min' || structure.stats[1].text!=='Planning: 23 ms' || structure.stats[2].text!=='Peak query memory: 2.00 MB' || !structure.stats[2].title.includes('MaxUsedMemory')) failures.push(`Plan summary metrics failed: ${JSON.stringify(structure)}`);
   if (Math.abs(structure.renameWidth-22)>1 || Math.abs(structure.renameHeight-22)>1 || structure.renameRightError>1 || !structure.renameIcon || structure.renameTitle!=='Rename plan' || structure.renameAria!=='Rename plan') failures.push(`Plan rename control layout failed: ${JSON.stringify(structure)}`);
-  if (structure.version!=='v0.2.11' || structure.versionFont>11 || structure.versionColor==='rgb(237, 241, 247)') failures.push(`Application version label failed: ${JSON.stringify(structure)}`);
+  if (structure.version!=='v0.3.0' || structure.versionFont>11 || structure.versionColor==='rgb(237, 241, 247)') failures.push(`Application version label failed: ${JSON.stringify(structure)}`);
   if (structure.toggleFont < 20 || (structure.toggleOpacity !== '0' && !structure.hoverNone) || structure.barBackground === 'rgba(0, 0, 0, 0)' || structure.barMask === 'rgba(0, 0, 0, 0)' || structure.metricsBackground === 'rgba(0, 0, 0, 0)' || Number(structure.metricsZ) <= Number(structure.nameZ) || structure.metricsWidth <= structure.contentsWidth) failures.push(`Tree controls or opaque metric column failed: ${JSON.stringify(structure)}`);
   const subplanPacking = await evaluate(`(() => {
     const zones=Array.from(document.querySelectorAll('.subplan-zone')).map(zone=>({number:zone.dataset.subplanZone,left:zone.offsetLeft,right:zone.offsetLeft+zone.offsetWidth,top:zone.offsetTop,bottom:zone.offsetTop+zone.offsetHeight,center:zone.offsetLeft+zone.offsetWidth/2}));
@@ -398,6 +411,22 @@ try {
     return {treeOne:row('1').querySelector('.tree-value').textContent,treeParallel:row('2').querySelector('.tree-value').textContent,graphOne:graphValue('1'),graphParallel:graphValue('2'),nodeOneAlert:Boolean(card('1').querySelector('[data-alert="rows"]')),estimated:details['Estimated rows per execution'],actualPerExecution:details['Actual rows per execution'],actualAllExecutions:details['Actual rows for all executions'],executions:details.Executions};
   })()`);
   if (rowsPerExecution.treeOne!=='1 / 1' || rowsPerExecution.treeParallel!=='2 / 4' || rowsPerExecution.graphOne!=='1 / 1' || rowsPerExecution.graphParallel!=='2 / 4' || rowsPerExecution.nodeOneAlert || rowsPerExecution.estimated!=='1' || rowsPerExecution.actualPerExecution!=='1' || rowsPerExecution.actualAllExecutions!=='39.55K' || rowsPerExecution.executions!=='39.55K') failures.push(`Rows per execution normalization failed: ${JSON.stringify(rowsPerExecution)}`);
+  await evaluate(`document.getElementById('menuBtn').click();document.getElementById('pasteBox').value=${JSON.stringify(waitStatsPlan)};document.getElementById('parsePasteBtn').click()`);
+  await retry(async () => {
+    const snapshot=await evaluate("(()=>{const visible=document.getElementById('viewer').classList.contains('visible'),time=document.querySelector('[data-metric=\"time\"]');if(visible&&!time.classList.contains('active'))time.click();return {visible,waits:document.querySelectorAll('.wait-row[data-wait-type]').length,toast:document.getElementById('toast').textContent}})()");
+    if (!snapshot.visible || snapshot.waits!==6) throw new Error(`Wait-statistics plan did not render: ${JSON.stringify(snapshot)}`);
+  });
+  const waitStats = await evaluate(`(() => {
+    const section=document.querySelector('.wait-tree'),rows=Array.from(section.querySelectorAll('[data-wait-type]'));
+    const row=type=>section.querySelector('[data-wait-type="'+type+'"]');
+    const widths=type=>Array.from(row(type).querySelectorAll('.wait-scale-fill')).map(fill=>parseFloat(fill.style.width));
+    const tracks=Array.from(section.querySelectorAll('.wait-scale')).map(track=>getComputedStyle(track).backgroundColor);
+    const names=rows.map(item=>item.dataset.waitType),tips=rows.map(item=>item.querySelector('.wait-stat-name').title),indents=rows.map(item=>parseFloat(getComputedStyle(item.querySelector('.wait-name')).paddingLeft));
+    document.querySelector('[data-metric="cost"]').click();const hiddenOnCost=!document.querySelector('.wait-tree');document.querySelector('[data-metric="time"]').click();
+    return {labels:Array.from(section.querySelectorAll('.wait-heading .wait-name')).map(item=>item.textContent),names,tips,indents,async:widths('ASYNC_NETWORK_IO'),page:widths('PAGEIOLATCH_SH'),scheduler:widths('SOS_SCHEDULER_YIELD'),tracks,hiddenOnCost,restored:Boolean(document.querySelector('.wait-tree'))};
+  })()`);
+  const knownWaits=['ASYNC_NETWORK_IO','PAGEIOLATCH_SH','RESERVED_MEMORY_ALLOCATION_EXT','SOS_SCHEDULER_YIELD','MEMORY_ALLOCATION_EXT'];
+  if (waitStats.labels[0]!=='Stats' || waitStats.labels[1]!=='WaitStats' || !knownWaits.every(type=>waitStats.names.includes(type)) || !waitStats.names.includes('UNKNOWN_WAIT_TEST') || waitStats.tips.some(tip=>!tip) || new Set(waitStats.indents).size!==1 || Math.abs(waitStats.async[0]-100)>0.1 || Math.abs(waitStats.async[1]-12.5)>0.1 || Math.abs(waitStats.page[0]-50)>0.1 || Math.abs(waitStats.page[1]-50)>0.1 || Math.abs(waitStats.scheduler[0]-75)>0.1 || Math.abs(waitStats.scheduler[1]-100)>0.1 || waitStats.tracks.some(color=>color==='rgba(0, 0, 0, 0)') || !waitStats.hiddenOnCost || !waitStats.restored) failures.push(`Wait statistics tree or dual scales failed: ${JSON.stringify(waitStats)}`);
   await evaluate(`document.getElementById('menuBtn').click();document.getElementById('pasteBox').value=${JSON.stringify(longSqlPlan)};document.getElementById('parsePasteBtn').click()`);
   await retry(async () => {
     if (!await evaluate("document.getElementById('viewer').classList.contains('visible')")) throw new Error('Long-SQL plan did not render');
