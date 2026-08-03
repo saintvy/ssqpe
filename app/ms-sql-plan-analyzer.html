@@ -269,7 +269,7 @@
 <body>
   <div class="app">
     <header class="topbar">
-      <div class="brand"><span class="logo">SSQPE</span><span class="brand-title">SQL Server Query Plan Explorer</span><small class="app-version">v0.3.1</small></div>
+      <div class="brand"><span class="logo">SSQPE</span><span class="brand-title">SQL Server Query Plan Explorer</span><small class="app-version">v0.3.2</small></div>
       <div class="top-actions">
         <button class="btn hidden" id="menuBtn" data-i18n="backToMenu"></button>
         <button class="btn hidden" id="historyBtn"><span data-i18n="history"></span> <span id="historyCount"></span></button>
@@ -1103,7 +1103,7 @@
         : state.metric === 'time'
           ? Math.max(...allNodes.flatMap(n => [n.runtime?.hasElapsed ? n.runtime.ActualElapsedms : 0, n.selfTime || 0]), 0.0000001)
           : state.metric === 'memory'
-            ? Math.max(...allNodes.flatMap(n => [n.spillMemory?.grantedMemoryKb || 0, n.spillMemory?.usedMemoryKb || 0]), 0.0000001)
+            ? 1
         : Math.max(...s.roots.map(r => metricValues(r).subtree || 0), ...allNodes.map(n => metricValues(n).subtree || 0), 0.0000001);
       const rows = nodes.map(n => {
         if (state.metric === 'rows') {
@@ -1134,7 +1134,7 @@
         if (state.metric === 'memory') {
           const memory=n.spillMemory,hasGranted=memory?.grantedMemoryKb!==null&&memory?.grantedMemoryKb!==undefined,hasUsed=memory?.usedMemoryKb!==null&&memory?.usedMemoryKb!==undefined;
           const granted=hasGranted?memory.grantedMemoryKb:null,used=hasUsed?memory.usedMemoryKb:null;
-          const grantedWidth=hasGranted?Math.min(100,100*granted/maximum):0,usedWidth=hasUsed?Math.min(100,100*used/maximum):0;
+          const grantedWidth=hasGranted&&granted>0?100:0,usedWidth=hasUsed&&used>0?Math.min(100,100*used/Math.max(granted||0,used,0.0000001)):0;
           const reads=memory?.readsFromTempDb,writes=memory?.writesToTempDb;
           const value=memory?`${reads===null?t('missing'):formatNumber(reads)} / ${writes===null?t('missing'):formatNumber(writes)}`:`${t('missing')} / ${t('missing')}`;
           const title=memory?`${t('grantedMemory')}: ${hasGranted?formatBytes(granted):t('missing')}; ${t('usedMemory')}: ${hasUsed?formatBytes(used):t('missing')}`:t('memoryUnavailable');

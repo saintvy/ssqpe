@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-08-03
+
+### Fixed
+
+- Memory usage bars are now normalized per operator: granted memory is the 100% reference and used memory shows its actual share of that grant.
+
 ## [0.3.1] - 2026-08-03
 
 ### Added
