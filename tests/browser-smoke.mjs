@@ -65,6 +65,10 @@ const mixedModeTiming = `<?xml version="1.0"?>
 </Merge></RelOp></Sort></RelOp>
 <RelOp NodeId="5" PhysicalOp="Clustered Index Scan" LogicalOp="Clustered Index Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.2" EstimatedExecutionMode="Row"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1" ActualElapsedms="5000" ActualCPUms="0" ActualExecutionMode="Row"/></RunTimeInformation><IndexScan/></RelOp>
 </Merge></RelOp></QueryPlan></StmtSimple></Statements></Batch></BatchSequence></ShowPlanXML>`;
+const adaptiveJoinRuntime = `<?xml version="1.0"?>
+<ShowPlanXML xmlns="http://schemas.microsoft.com/sqlserver/2004/07/showplan" Version="1.6" Build="test"><BatchSequence><Batch><Statements>
+<StmtSimple StatementId="1" StatementType="SELECT" StatementText="synthetic adaptive join"><QueryPlan><RelOp NodeId="0" PhysicalOp="Adaptive Join" LogicalOp="Inner Join" IsAdaptive="true" EstimatedJoinType="Nested Loops" EstimateRows="1" EstimatedTotalSubtreeCost="1"><RunTimeInformation><RunTimeCountersPerThread Thread="0" ActualRows="1" ActualExecutions="1" ActualElapsedms="10" ActualCPUms="8" ActualExecutionMode="Row" ActualJoinType="Hash Match"/></RunTimeInformation><AdaptiveJoin><RelOp NodeId="1" PhysicalOp="Index Scan" LogicalOp="Index Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.2"><IndexScan/></RelOp></AdaptiveJoin></RelOp></QueryPlan></StmtSimple>
+</Statements></Batch></BatchSequence></ShowPlanXML>`;
 const repeatedExecutionRows = `<?xml version="1.0"?>
 <ShowPlanXML xmlns="http://schemas.microsoft.com/sqlserver/2004/07/showplan" Version="1.0" Build="test"><BatchSequence><Batch><Statements>
 <StmtSimple StatementId="1" StatementType="SELECT" StatementText="synthetic rows per execution"><QueryPlan>
@@ -198,7 +202,7 @@ try {
   if (structure.detailsButton || !structure.flagSvg || structure.emojiLanguage) failures.push(`Toolbar or embedded language flags failed: ${JSON.stringify(structure)}`);
   if (structure.buildText!=='SQL Server build test' || !structure.buildTitle || structure.stats.length!==3 || structure.stats[0].text!=='Total time: 5.85 min' || structure.stats[1].text!=='Planning: 23 ms' || structure.stats[2].text!=='Peak query memory: 2.00 MB' || !structure.stats[2].title.includes('MaxUsedMemory')) failures.push(`Plan summary metrics failed: ${JSON.stringify(structure)}`);
   if (Math.abs(structure.renameWidth-22)>1 || Math.abs(structure.renameHeight-22)>1 || structure.renameRightError>1 || !structure.renameIcon || structure.renameTitle!=='Rename plan' || structure.renameAria!=='Rename plan') failures.push(`Plan rename control layout failed: ${JSON.stringify(structure)}`);
-  if (structure.version!=='v0.2.10' || structure.versionFont>11 || structure.versionColor==='rgb(237, 241, 247)') failures.push(`Application version label failed: ${JSON.stringify(structure)}`);
+  if (structure.version!=='v0.2.11' || structure.versionFont>11 || structure.versionColor==='rgb(237, 241, 247)') failures.push(`Application version label failed: ${JSON.stringify(structure)}`);
   if (structure.toggleFont < 20 || (structure.toggleOpacity !== '0' && !structure.hoverNone) || structure.barBackground === 'rgba(0, 0, 0, 0)' || structure.barMask === 'rgba(0, 0, 0, 0)' || structure.metricsBackground === 'rgba(0, 0, 0, 0)' || Number(structure.metricsZ) <= Number(structure.nameZ) || structure.metricsWidth <= structure.contentsWidth) failures.push(`Tree controls or opaque metric column failed: ${JSON.stringify(structure)}`);
   const subplanPacking = await evaluate(`(() => {
     const zones=Array.from(document.querySelectorAll('.subplan-zone')).map(zone=>({number:zone.dataset.subplanZone,left:zone.offsetLeft,right:zone.offsetLeft+zone.offsetWidth,top:zone.offsetTop,bottom:zone.offsetTop+zone.offsetHeight,center:zone.offsetLeft+zone.offsetWidth/2}));
@@ -369,6 +373,17 @@ try {
     return {root:series('0'),sort:series('1'),inner:series('2'),leaf:series('3'),legend:document.getElementById('metricNotice').textContent};
   })()`);
   if (Math.abs(mixedTiming.root.elapsed-100)>0.1 || Math.abs(mixedTiming.root.current-20)>0.1 || mixedTiming.root.value!=='10.00 s' || Math.abs(mixedTiming.sort.elapsed-20)>0.1 || Math.abs(mixedTiming.sort.current-20)>0.1 || mixedTiming.sort.value!=='10.00 s' || Math.abs(mixedTiming.inner.elapsed-60)>0.1 || Math.abs(mixedTiming.inner.current-10)>0.1 || mixedTiming.inner.value!=='5.00 s' || mixedTiming.leaf.value!=='25.00 s' || mixedTiming.legend.includes('CPU')) failures.push(`Mixed Row/Batch elapsed-time estimate failed: ${JSON.stringify(mixedTiming)}`);
+  await evaluate(`document.getElementById('menuBtn').click();document.getElementById('pasteBox').value=${JSON.stringify(adaptiveJoinRuntime)};document.getElementById('parsePasteBtn').click()`);
+  await retry(async () => {
+    if (!await evaluate("document.getElementById('viewer').classList.contains('visible') && document.querySelectorAll('.node-card').length===2")) throw new Error('Adaptive Join runtime plan did not render');
+  });
+  const adaptiveJoinDetails = await evaluate(`(() => {
+    document.querySelector('.node-card[data-subplan="false"][data-node-id="0"]').click();
+    const sections=Array.from(document.querySelectorAll('#drawerBody .detail-section')),table=section=>Object.fromEntries(Array.from(section.querySelectorAll('.kv')).map(item=>[item.querySelector('.k').textContent,item.lastElementChild.textContent]));
+    const primary=table(sections[0]),attributes=table(sections.find(section=>section.querySelector('h3')?.textContent==='ShowPlan attributes'));
+    return {actual:primary['Actual join type'],estimated:attributes.EstimatedJoinType,primaryCopy:sections[0].querySelector('.detail-copy-button')?.dataset.copyDetail};
+  })()`);
+  if (adaptiveJoinDetails.actual!=='Hash Match' || adaptiveJoinDetails.estimated!=='Nested Loops' || adaptiveJoinDetails.actual===adaptiveJoinDetails.estimated || adaptiveJoinDetails.primaryCopy===undefined) failures.push(`Adaptive Join actual type details failed: ${JSON.stringify(adaptiveJoinDetails)}`);
   await evaluate(`document.getElementById('menuBtn').click();document.getElementById('pasteBox').value=${JSON.stringify(repeatedExecutionRows)};document.getElementById('parsePasteBtn').click()`);
   await retry(async () => {
     if (!await evaluate("document.getElementById('viewer').classList.contains('visible') && document.querySelectorAll('.node-card').length===3")) throw new Error('Rows-per-execution plan did not render');

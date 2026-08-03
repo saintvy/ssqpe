@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.11] - 2026-08-03
+
+### Added
+
+- Adaptive Join details now show the actual join type selected at runtime from `RunTimeCountersPerThread.ActualJoinType`.
+
 ## [0.2.10] - 2026-07-28
 
 ### Added
