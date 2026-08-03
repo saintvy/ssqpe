@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-08-03
+
+### Added
+
+- Added a Memory metric view with a query-level `MemoryGrantInfo` tree and operator spill details, comparing granted and used memory while showing `ReadsFromTempDb / WritesToTempDb` counters.
+
 ## [0.3.0] - 2026-08-03
 
 ### Added

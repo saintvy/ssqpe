@@ -18,6 +18,7 @@
       --accent-2: #8b7dff;
       --time: #42c89c;
       --cost: #e9aa57;
+      --memory: #a88bff;
       --danger: #ff6d7a;
       --warning: #f4cb62;
       --left-width: 410px;
@@ -98,6 +99,9 @@
     .tree-bar .time-elapsed, .tree-bar .time-current { position: absolute; z-index: 1; left: 0; top: 0; bottom: 0; min-width: 0; background: var(--time); }
     .tree-bar .time-elapsed { opacity: .3; }
     .tree-bar .time-current { opacity: .95; }
+    .tree-bar .memory-granted, .tree-bar .memory-used { position: absolute; z-index: 1; left: 0; top: 0; bottom: 0; min-width: 0; background: var(--memory); }
+    .tree-bar .memory-granted { opacity: .3; }
+    .tree-bar .memory-used { opacity: .95; }
     .tree-bar .rows-segment { position: absolute; z-index: 1; top: 0; bottom: 0; min-width: 0; }
     .tree-bar .rows-estimate.severity-0 { background: #34485a; }
     .tree-bar .rows-actual.severity-0 { background: #4fd0a4; }
@@ -126,6 +130,11 @@
     .wait-scale.time .wait-scale-fill { background: #4fd0a4; }
     .wait-scale.count .wait-scale-fill { background: #fddb61; }
     .wait-scale-value { position: absolute; inset: 0 5px; display: flex; align-items: center; justify-content: flex-end; color: #eef4fa; font-size: 10px; text-shadow: 0 1px 2px #08100e; white-space: nowrap; }
+    .memory-info-tree { --tree-row-bg: var(--surface); margin-bottom: 7px; padding-bottom: 7px; border-bottom: 1px solid var(--border); }
+    .memory-info-metrics { position: sticky; right: 0; z-index: 5; flex: 0 0 215px; width: 215px; height: 100%; margin-right: -9px; padding: 0 9px; display: flex; align-items: center; gap: 7px; background: var(--tree-row-bg); }
+    .tree-bar .memory-reference, .tree-bar .memory-info-value { position: absolute; z-index: 1; left: 0; top: 0; bottom: 0; min-width: 0; background: var(--memory); }
+    .tree-bar .memory-reference { opacity: .25; }
+    .tree-bar .memory-info-value { opacity: .95; }
     .call-mark { color: var(--accent-2); margin-right: 4px; }
     .main { min-width: 0; min-height: 0; position: relative; overflow: hidden; background: radial-gradient(circle at 10% 0%, #192233 0, transparent 38%), var(--bg); }
     .empty { height: 100%; display: grid; place-items: center; padding: 30px; }
@@ -260,7 +269,7 @@
 <body>
   <div class="app">
     <header class="topbar">
-      <div class="brand"><span class="logo">SSQPE</span><span class="brand-title">SQL Server Query Plan Explorer</span><small class="app-version">v0.3.0</small></div>
+      <div class="brand"><span class="logo">SSQPE</span><span class="brand-title">SQL Server Query Plan Explorer</span><small class="app-version">v0.3.1</small></div>
       <div class="top-actions">
         <button class="btn hidden" id="menuBtn" data-i18n="backToMenu"></button>
         <button class="btn hidden" id="historyBtn"><span data-i18n="history"></span> <span id="historyCount"></span></button>
@@ -289,6 +298,7 @@
                 <button data-metric="time" class="active" data-i18n="time"></button>
                 <button data-metric="cost" data-i18n="cost"></button>
                 <button data-metric="rows" data-i18n="rows"></button>
+                <button data-metric="memory" data-i18n="memoryMetric"></button>
               </div>
               <div class="metric-notice" id="metricNotice"></div>
             </div>
@@ -344,13 +354,13 @@
     const I18N = {
       ru: {
         languageName: 'Русский', backToMenu: 'Возврат в меню', history: 'История', language: 'Язык интерфейса', savedPlans: 'Сохранённые планы', clear: 'Очистить',
-        expandAll: 'Развернуть всё', time: 'Время', cost: 'Стоимость', rows: 'Строки', stats: 'Статистика', waitStats: 'WaitStats', waitCount: 'WaitCount', maximum: 'Максимум', resizeSidebar: 'Изменить ширину панели',
+        expandAll: 'Развернуть всё', time: 'Время', cost: 'Стоимость', rows: 'Строки', memoryMetric: 'Память', stats: 'Статистика', waitStats: 'WaitStats', waitCount: 'WaitCount', maximum: 'Максимум', resizeSidebar: 'Изменить ширину панели',
         openExecutionPlan: 'Откройте план выполнения SQL Server', dropDescription: 'Перетащите сюда файл <b>.sqlplan</b> из SSMS, выберите его с диска или вставьте ShowPlan XML. Данные не покидают браузер.',
         planNamePlaceholder: 'Имя плана для истории (необязательно)', chooseFile: 'Выбрать файл', pastePlaceholder: 'Вставьте XML, начинающийся с <ShowPlanXML …>', parseXml: 'Разобрать XML',
         resetView: 'Сбросить вид', details: 'Детали', keepDetailsHidden: 'Скрыть детали', showDetails: 'Показать детали', close: 'Закрыть', collapseSubtree: 'Свернуть дочернее поддерево', expandSubtree: 'Развернуть дочернее поддерево', queryText: 'Текст запроса', showQuery: 'Показать SQL-текст', queryUnavailable: 'SQL-текст отсутствует', showRawPlan: 'Показать исходный план', rawPlan: 'Исходный XML-план', copy: 'Скопировать', copySection: 'Скопировать раздел', copied: 'Текст скопирован', copyFailed: 'Не удалось скопировать текст',
         actualPlan: 'Фактический', estimatedPlan: 'Оценочный', statementsShort: 'запр.', nodesShort: 'узлов', query: 'Запрос', queryNumber: 'Запрос {number}', sqlServerBuild: 'сборка SQL Server', buildHint: 'Номер сборки SQL Server, сформировавшей этот план', totalExecutionTime: 'Общее время', totalExecutionTimeHint: 'Сумма QueryTimeStats.ElapsedTime по всем запросам плана', planningTime: 'Планирование', planningTimeHint: 'Сумма QueryPlan.CompileTime по всем запросам плана', peakQueryMemory: 'Пик памяти запроса', peakQueryMemoryHint: 'Максимальное значение MaxUsedMemory из memory grant, сообщённое SQL Server. Это не полное потребление памяти сервером.',
         noStatementGraph: 'В этом запросе нет графа операторов.', noGraphFromServer: 'Для этого запроса SQL Server не предоставил дерево операторов.', timeUnavailable: 'В XML отсутствует ActualElapsedms — фактическое время операторов неизвестно.',
-        subtree: 'Поддерево', currentNode: 'Текущий оператор', estimate: 'Оценка', actual: 'Факт', noActualRows: 'Фактическое количество строк отсутствует', underestimated: 'Недооценено: фактических строк больше оценки', overestimated: 'Переоценено: фактических строк меньше оценки', closeEstimate: 'Оценка близка к факту', underShort: 'недооценка', overShort: 'переоценка', closeShort: 'до 10×', rowSeverity2: 'ошибка >10×', rowSeverity3: 'ошибка >100×', rowSeverity4: 'ошибка >1000×',
+        subtree: 'Поддерево', currentNode: 'Текущий оператор', estimate: 'Оценка', actual: 'Факт', grantedMemory: 'Предоставленная память', usedMemory: 'Использованная память', tempDbReadsWrites: 'Чтения / записи tempdb', memoryUnavailable: 'Данные памяти оператора отсутствуют', noActualRows: 'Фактическое количество строк отсутствует', underestimated: 'Недооценено: фактических строк больше оценки', overestimated: 'Переоценено: фактических строк меньше оценки', closeEstimate: 'Оценка близка к факту', underShort: 'недооценка', overShort: 'переоценка', closeShort: 'до 10×', rowSeverity2: 'ошибка >10×', rowSeverity3: 'ошибка >100×', rowSeverity4: 'ошибка >1000×',
         clickNode: 'Нажмите, чтобы открыть характеристики', rowsEstimateActual: 'Строки за выполнение: оценка / факт', timeCost: 'Время / стоимость узла', executions: 'Выполнения', outputColumns: 'Выходные столбцы', actualCpuTime: 'Фактическое затраченное процессорное время', actualJoinType: 'Фактически выбранный тип соединения',
         flagWarning: 'Предупреждение оператора', flagParallel: 'Параллельное выполнение', flagBatch: 'Пакетный режим выполнения', slowNode: 'Медленный оператор: {percent}% общего времени ({time})', badRowEstimate: 'Плохая оценка строк: {direction} в {factor}× (за выполнение: оценка {estimated}, факт {actual})', underDirection: 'недооценка', overDirection: 'переоценка',
         operator: 'Оператор', primaryMetrics: 'Основные показатели', estimatedRows: 'Оценка строк за выполнение', actualRows: 'Фактические строки за выполнение', actualRowsAllExecutions: 'Фактические строки за все выполнения', actualTime: 'Фактическое elapsed-время', exclusiveTime: 'Время текущего оператора (оценка)', exclusiveTimeExplanation: 'Режимозависимая оценка критического пути: в Row Mode ActualElapsedms считается временем поддерева, а в Batch Mode — временем самого узла. Время Batch-узлов накапливается до ближайшего Row-узла; для перекрывающихся дочерних ветвей используется самая длинная. Параллельное и конвейерное выполнение не позволяет считать это точным измерением.', subtreeCost: 'Стоимость поддерева', selfCost: 'Собственная стоимость', mode: 'Режим',
@@ -366,13 +376,13 @@
       },
       en: {
         languageName: 'English', backToMenu: 'Back to menu', history: 'History', language: 'Interface language', savedPlans: 'Saved plans', clear: 'Clear',
-        expandAll: 'Expand all', time: 'Time', cost: 'Cost', rows: 'Rows', stats: 'Stats', waitStats: 'WaitStats', waitCount: 'WaitCount', maximum: 'Maximum', resizeSidebar: 'Resize sidebar',
+        expandAll: 'Expand all', time: 'Time', cost: 'Cost', rows: 'Rows', memoryMetric: 'Memory', stats: 'Stats', waitStats: 'WaitStats', waitCount: 'WaitCount', maximum: 'Maximum', resizeSidebar: 'Resize sidebar',
         openExecutionPlan: 'Open a SQL Server execution plan', dropDescription: 'Drop an SSMS <b>.sqlplan</b> file here, choose one from disk, or paste ShowPlan XML. Your data never leaves the browser.',
         planNamePlaceholder: 'Plan name for history (optional)', chooseFile: 'Choose file', pastePlaceholder: 'Paste XML starting with <ShowPlanXML …>', parseXml: 'Parse XML',
         resetView: 'Reset view', details: 'Details', keepDetailsHidden: 'Keep details hidden', showDetails: 'Show details', close: 'Close', collapseSubtree: 'Collapse child subtree', expandSubtree: 'Expand child subtree', queryText: 'Query text', showQuery: 'Show SQL text', queryUnavailable: 'SQL text unavailable', showRawPlan: 'Show raw plan', rawPlan: 'Raw XML plan', copy: 'Copy', copySection: 'Copy section', copied: 'Text copied', copyFailed: 'Could not copy text',
         actualPlan: 'Actual', estimatedPlan: 'Estimated', statementsShort: 'queries', nodesShort: 'nodes', query: 'Query', queryNumber: 'Query {number}', sqlServerBuild: 'SQL Server build', buildHint: 'Build number of the SQL Server instance that produced this plan', totalExecutionTime: 'Total time', totalExecutionTimeHint: 'Sum of QueryTimeStats.ElapsedTime across all queries in the plan', planningTime: 'Planning', planningTimeHint: 'Sum of QueryPlan.CompileTime across all queries in the plan', peakQueryMemory: 'Peak query memory', peakQueryMemoryHint: 'Maximum MaxUsedMemory from the memory grant reported by SQL Server. This is not the server process\'s total memory usage.',
         noStatementGraph: 'This query has no operator graph.', noGraphFromServer: 'SQL Server did not provide an operator tree for this query.', timeUnavailable: 'ActualElapsedms is absent from the XML — operator elapsed time is unknown.',
-        subtree: 'Subtree', currentNode: 'Current operator', estimate: 'Estimate', actual: 'Actual', noActualRows: 'Actual row count is unavailable', underestimated: 'Underestimated: actual rows exceed the estimate', overestimated: 'Overestimated: actual rows are below the estimate', closeEstimate: 'Estimate is close to actual', underShort: 'underestimated', overShort: 'overestimated', closeShort: 'up to 10×', rowSeverity2: 'error >10×', rowSeverity3: 'error >100×', rowSeverity4: 'error >1000×',
+        subtree: 'Subtree', currentNode: 'Current operator', estimate: 'Estimate', actual: 'Actual', grantedMemory: 'Granted memory', usedMemory: 'Used memory', tempDbReadsWrites: 'tempdb reads / writes', memoryUnavailable: 'Operator memory data is unavailable', noActualRows: 'Actual row count is unavailable', underestimated: 'Underestimated: actual rows exceed the estimate', overestimated: 'Overestimated: actual rows are below the estimate', closeEstimate: 'Estimate is close to actual', underShort: 'underestimated', overShort: 'overestimated', closeShort: 'up to 10×', rowSeverity2: 'error >10×', rowSeverity3: 'error >100×', rowSeverity4: 'error >1000×',
         clickNode: 'Click to open operator details', rowsEstimateActual: 'Rows per execution: estimate / actual', timeCost: 'Operator time / cost', executions: 'Executions', outputColumns: 'Output columns', actualCpuTime: 'Actual elapsed CPU time', actualJoinType: 'Actual join type',
         flagWarning: 'Operator warning', flagParallel: 'Parallel execution', flagBatch: 'Batch execution mode', slowNode: 'Slow operator: {percent}% of total time ({time})', badRowEstimate: 'Bad row estimate: {direction} by {factor}× (per execution: estimated {estimated}, actual {actual})', underDirection: 'underestimated', overDirection: 'overestimated',
         operator: 'Operator', primaryMetrics: 'Primary metrics', estimatedRows: 'Estimated rows per execution', actualRows: 'Actual rows per execution', actualRowsAllExecutions: 'Actual rows for all executions', actualTime: 'Actual elapsed time', exclusiveTime: 'Current-operator time (estimated)', exclusiveTimeExplanation: 'Execution-mode-aware critical-path estimate: ActualElapsedms is treated as subtree time in Row Mode and as node-only time in Batch Mode. Batch-node time accumulates down to the nearest Row node; the longest overlapping child branch is used. Parallel and pipelined execution prevents this from being an exact measurement.', subtreeCost: 'Subtree cost', selfCost: 'Self cost', mode: 'Mode',
@@ -612,6 +622,19 @@
       return warnings;
     }
 
+    function extractSpillMemory(relop) {
+      const details = ['HashSpillDetails', 'SortSpillDetails'].flatMap(tag => directWithin(relop, tag));
+      if (!details.length) return null;
+      const values = key => details.filter(el => el.hasAttribute(key)).map(el => num(attr(el, key)));
+      const granted = values('GrantedMemoryKb'), used = values('UsedMemoryKb'), reads = values('ReadsFromTempDb'), writes = values('WritesToTempDb');
+      return {
+        grantedMemoryKb: granted.length ? Math.max(...granted) : null,
+        usedMemoryKb: used.length ? Math.max(...used) : null,
+        readsFromTempDb: reads.length ? reads.reduce((sum, value) => sum + value, 0) : null,
+        writesToTempDb: writes.length ? writes.reduce((sum, value) => sum + value, 0) : null
+      };
+    }
+
     function parseNode(relop, path, parent = null) {
       const runtime = runtimeAggregate(relop);
       const outputs = directWithin(relop, 'OutputList').flatMap(out => children(out, 'ColumnReference')).map(formatColumn).filter(Boolean);
@@ -644,6 +667,7 @@
         attributes: Object.fromEntries(Array.from(relop.attributes).map(a => [a.name, a.value])),
         memory: directWithin(relop, 'MemoryFractions').map(el => Object.fromEntries(Array.from(el.attributes).map(a => [a.name,a.value]))),
         spills: directWithin(relop, 'SpillToTempDb').map(el => Object.fromEntries(Array.from(el.attributes).map(a => [a.name,a.value]))),
+        spillMemory: extractSpillMemory(relop),
         parent,
         children: [],
         el: relop,
@@ -1035,12 +1059,35 @@
       </section>`;
     }
 
+    function renderMemoryGrantInfo(statement) {
+      const entries = Object.entries(statement?.memoryGrant || {});
+      if (!entries.length) return '';
+      const isMemory = key => /Memory/i.test(key) && !/Time/i.test(key);
+      const memoryValues = entries.filter(([key, value]) => isMemory(key) && Number.isFinite(Number(value))).map(([, value]) => Number(value));
+      const maximum = Math.max(...memoryValues, 0.0000001);
+      const formatted = (key, value) => /Time/i.test(key) && Number.isFinite(Number(value)) ? formatMs(value) : isMemory(key) && Number.isFinite(Number(value)) ? formatBytes(value) : formatNumber(value);
+      const rows = entries.map(([key, value]) => {
+        const numericMemory = isMemory(key) && Number.isFinite(Number(value));
+        const width = numericMemory ? Math.min(100, Math.max(0, 100 * Number(value) / maximum)) : 0;
+        const display = formatted(key, value);
+        return `<div class="wait-row" data-memory-info="${esc(key)}" style="--depth:1">
+          <div class="wait-name">${esc(key)}</div>
+          <div class="memory-info-metrics"><div class="tree-bar" title="${esc(key)}: ${esc(display)}">${numericMemory?`<span class="memory-reference" style="width:100%"></span><span class="memory-info-value" data-series="memory-info" style="width:${width}%"></span>`:''}</div><div class="tree-value">${esc(display)}</div></div>
+        </div>`;
+      }).join('');
+      return `<section class="memory-info-tree" aria-label="MemoryGrantInfo">
+        <div class="wait-row wait-heading" style="--depth:0"><div class="wait-name">MemoryGrantInfo</div><div class="memory-info-metrics"></div></div>
+        ${rows}
+      </section>`;
+    }
+
     function renderTree() {
       const s = currentStatement();
       els.expandAllBtn.disabled = state.collapsedIds.size === 0;
       const waitStats = state.metric === 'time' ? renderWaitStats(s) : '';
+      const memoryGrantInfo = state.metric === 'memory' ? renderMemoryGrantInfo(s) : '';
       if (!s || !s.roots.length) {
-        els.tree.innerHTML = `<div class="tree-content">${waitStats}<div style="padding:20px;color:var(--muted)">${esc(t('noStatementGraph'))}</div></div>`;
+        els.tree.innerHTML = `<div class="tree-content">${waitStats}${memoryGrantInfo}<div style="padding:20px;color:var(--muted)">${esc(t('noStatementGraph'))}</div></div>`;
         els.metricNotice.textContent = '';
         return;
       }
@@ -1049,11 +1096,14 @@
       const timeMissing = state.metric === 'time' && !allNodes.some(n => n.runtime?.hasElapsed);
       if (state.metric === 'time') els.metricNotice.innerHTML = `${timeMissing?`<span>${esc(t('timeUnavailable'))}</span>`:''}<span class="rows-legend"><span><i class="metric-dot" style="background:#246653"></i>${esc(t('actualTime'))}</span><span><i class="metric-dot" style="background:var(--time)"></i>${esc(t('exclusiveTime'))}</span></span>`;
       else if (state.metric === 'rows') els.metricNotice.innerHTML = `<span class="rows-legend"><span><i class="metric-dot" style="background:#4fd0a4"></i>${esc(t('closeShort'))}</span><span><i class="metric-dot" style="background:#fddb61"></i>${esc(t('rowSeverity2'))}</span><span><i class="metric-dot" style="background:#ee8800"></i>${esc(t('rowSeverity3'))}</span><span><i class="metric-dot" style="background:#ff5964"></i>${esc(t('rowSeverity4'))}</span></span>`;
+      else if (state.metric === 'memory') els.metricNotice.innerHTML = `<span class="rows-legend"><span><i class="metric-dot" style="background:#554779"></i>${esc(t('grantedMemory'))}</span><span><i class="metric-dot" style="background:var(--memory)"></i>${esc(t('usedMemory'))}</span><span>${esc(t('tempDbReadsWrites'))}</span></span>`;
       else els.metricNotice.textContent = '';
       const maximum = state.metric === 'rows'
         ? Math.max(...allNodes.flatMap(n => [n.estimatedRows, actualRowsPerExecution(n) || 0]), 0.0000001)
         : state.metric === 'time'
           ? Math.max(...allNodes.flatMap(n => [n.runtime?.hasElapsed ? n.runtime.ActualElapsedms : 0, n.selfTime || 0]), 0.0000001)
+          : state.metric === 'memory'
+            ? Math.max(...allNodes.flatMap(n => [n.spillMemory?.grantedMemoryKb || 0, n.spillMemory?.usedMemoryKb || 0]), 0.0000001)
         : Math.max(...s.roots.map(r => metricValues(r).subtree || 0), ...allNodes.map(n => metricValues(n).subtree || 0), 0.0000001);
       const rows = nodes.map(n => {
         if (state.metric === 'rows') {
@@ -1081,6 +1131,20 @@
             <div class="tree-value" title="${esc(t('exclusiveTime'))}">${esc(formatMs(current))}</div></div>
           </div>`;
         }
+        if (state.metric === 'memory') {
+          const memory=n.spillMemory,hasGranted=memory?.grantedMemoryKb!==null&&memory?.grantedMemoryKb!==undefined,hasUsed=memory?.usedMemoryKb!==null&&memory?.usedMemoryKb!==undefined;
+          const granted=hasGranted?memory.grantedMemoryKb:null,used=hasUsed?memory.usedMemoryKb:null;
+          const grantedWidth=hasGranted?Math.min(100,100*granted/maximum):0,usedWidth=hasUsed?Math.min(100,100*used/maximum):0;
+          const reads=memory?.readsFromTempDb,writes=memory?.writesToTempDb;
+          const value=memory?`${reads===null?t('missing'):formatNumber(reads)} / ${writes===null?t('missing'):formatNumber(writes)}`:`${t('missing')} / ${t('missing')}`;
+          const title=memory?`${t('grantedMemory')}: ${hasGranted?formatBytes(granted):t('missing')}; ${t('usedMemory')}: ${hasUsed?formatBytes(used):t('missing')}`:t('memoryUnavailable');
+          return `<div class="tree-row ${n.id===state.selectedId?'selected':''}" data-id="${esc(n.id)}" style="--depth:${n.depth}">
+            ${treeToggle(n)}
+            <div class="tree-name"><span class="tree-op">${n.duplicateGroup?'<span class="call-mark">↗</span>':''}${esc(n.physical)}</span><span class="tree-object">${esc(n.objectLabel || n.logical || '')}</span></div>
+            <div class="tree-metrics"><div class="tree-bar" title="${esc(title)}">${hasGranted?`<span class="memory-granted" data-series="granted" style="width:${grantedWidth}%"></span>`:''}${hasUsed?`<span class="memory-used" data-series="used" style="width:${usedWidth}%"></span>`:''}</div>
+            <div class="tree-value" title="${esc(t('tempDbReadsWrites'))}">${esc(value)}</div></div>
+          </div>`;
+        }
         const v = metricValues(n);
         const subWidth = Math.min(100, 100 * (v.subtree || 0) / maximum);
         const selfWidth = Math.min(subWidth, 100 * (v.self || 0) / maximum);
@@ -1096,7 +1160,7 @@
       const operatorWidth = 390 + Math.max(0, ...nodes.map(n => n.depth)) * 15;
       const waitWidth = state.metric === 'time' && s.waitStats?.length ? 270 + Math.max(...s.waitStats.map(wait => wait.type.length)) * 7 : 0;
       const contentWidth = Math.max(operatorWidth, waitWidth);
-      els.tree.innerHTML = `<div class="tree-content" style="width:${contentWidth}px">${waitStats}${rows}</div>`;
+      els.tree.innerHTML = `<div class="tree-content" style="width:${contentWidth}px">${waitStats}${memoryGrantInfo}${rows}</div>`;
       $$('#metricSwitch button', els.metricSwitch).forEach(b => b.classList.toggle('active', b.dataset.metric === state.metric));
     }
 

@@ -89,6 +89,12 @@ const waitStatsPlan = `<?xml version="1.0"?>
 </WaitStats>
 <RelOp NodeId="0" PhysicalOp="Constant Scan" LogicalOp="Constant Scan" EstimateRows="1" EstimatedTotalSubtreeCost="0.01"><ConstantScan/></RelOp>
 </QueryPlan></StmtSimple></Statements></Batch></BatchSequence></ShowPlanXML>`;
+const memorySpillPlan = `<?xml version="1.0"?>
+<ShowPlanXML xmlns="http://schemas.microsoft.com/sqlserver/2004/07/showplan" Version="1.0" Build="test"><BatchSequence><Batch><Statements>
+<StmtSimple StatementId="1" StatementType="SELECT" StatementText="synthetic memory spill"><QueryPlan><MemoryGrantInfo RequiredMemory="1024" RequestedMemory="4096" GrantWaitTime="12" GrantedMemory="4096" MaxUsedMemory="2048"/>
+<RelOp NodeId="0" PhysicalOp="Hash Match" LogicalOp="Inner Join" EstimateRows="1" EstimatedTotalSubtreeCost="1"><Warnings><SpillToTempDb SpillLevel="1"/><HashSpillDetails GrantedMemoryKb="2048" UsedMemoryKb="1024" WritesToTempDb="25" ReadsFromTempDb="100"/></Warnings><Hash>
+<RelOp NodeId="1" PhysicalOp="Sort" LogicalOp="Sort" EstimateRows="1" EstimatedTotalSubtreeCost="0.5"><Warnings><SpillToTempDb SpillLevel="2"/><SortSpillDetails GrantedMemoryKb="1024" UsedMemoryKb="256" WritesToTempDb="10" ReadsFromTempDb="50"/></Warnings><Sort/></RelOp>
+</Hash></RelOp></QueryPlan></StmtSimple></Statements></Batch></BatchSequence></ShowPlanXML>`;
 const longSqlText = `SELECT /* ${'horizontal-scroll-marker-'.repeat(80)} */\n${Array.from({length:700},(_,index)=>`  CASE WHEN source.[Column${index}] IS NULL THEN ${index} ELSE source.[Column${index}] END AS [Result${index}]`).join(',\n')}\nFROM dbo.Source AS source;`;
 const longSqlTail = `SELECT COUNT_BIG(*) AS [Tail marker] FROM dbo.Source;`;
 const xmlAttr = value => value.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('\r','&#13;').replaceAll('\n','&#10;');
@@ -190,6 +196,10 @@ try {
         const timeState = await evaluate(`(() => {document.querySelector('[data-metric="time"]').click();return {notice:document.getElementById('metricNotice').textContent,elapsedBars:document.querySelectorAll('.time-elapsed').length}})()`);
         if (!timeState.notice || timeState.elapsedBars) failures.push(`${plan}: missing elapsed time is represented as measured data: ${JSON.stringify(timeState)}`);
       }
+      if (basename(plan).toLowerCase() === 'hashspilldetails.sqlplan') {
+        const memoryState = await evaluate(`(() => {document.querySelector('[data-metric="memory"]').click();const values=Array.from(document.querySelectorAll('.tree-row')).filter(row=>row.querySelector('.memory-used')).map(row=>row.querySelector('.tree-value').textContent);const result={spillNodes:values.length,values,grantEntries:document.querySelectorAll('.memory-info-tree [data-memory-info]').length};document.querySelector('[data-metric="time"]').click();return result})()`);
+        if (memoryState.spillNodes!==2 || !memoryState.values.includes('19.04K / 10.04K') || !memoryState.values.includes('19.32K / 19.32K') || memoryState.grantEntries<5) failures.push(`${plan}: real spill memory details failed: ${JSON.stringify(memoryState)}`);
+      }
     } catch (error) {
       failures.push(`${plan}: ${error.message}`);
     }
@@ -215,7 +225,7 @@ try {
   if (structure.detailsButton || !structure.flagSvg || structure.emojiLanguage) failures.push(`Toolbar or embedded language flags failed: ${JSON.stringify(structure)}`);
   if (structure.buildText!=='SQL Server build test' || !structure.buildTitle || structure.stats.length!==3 || structure.stats[0].text!=='Total time: 5.85 min' || structure.stats[1].text!=='Planning: 23 ms' || structure.stats[2].text!=='Peak query memory: 2.00 MB' || !structure.stats[2].title.includes('MaxUsedMemory')) failures.push(`Plan summary metrics failed: ${JSON.stringify(structure)}`);
   if (Math.abs(structure.renameWidth-22)>1 || Math.abs(structure.renameHeight-22)>1 || structure.renameRightError>1 || !structure.renameIcon || structure.renameTitle!=='Rename plan' || structure.renameAria!=='Rename plan') failures.push(`Plan rename control layout failed: ${JSON.stringify(structure)}`);
-  if (structure.version!=='v0.3.0' || structure.versionFont>11 || structure.versionColor==='rgb(237, 241, 247)') failures.push(`Application version label failed: ${JSON.stringify(structure)}`);
+  if (structure.version!=='v0.3.1' || structure.versionFont>11 || structure.versionColor==='rgb(237, 241, 247)') failures.push(`Application version label failed: ${JSON.stringify(structure)}`);
   if (structure.toggleFont < 20 || (structure.toggleOpacity !== '0' && !structure.hoverNone) || structure.barBackground === 'rgba(0, 0, 0, 0)' || structure.barMask === 'rgba(0, 0, 0, 0)' || structure.metricsBackground === 'rgba(0, 0, 0, 0)' || Number(structure.metricsZ) <= Number(structure.nameZ) || structure.metricsWidth <= structure.contentsWidth) failures.push(`Tree controls or opaque metric column failed: ${JSON.stringify(structure)}`);
   const subplanPacking = await evaluate(`(() => {
     const zones=Array.from(document.querySelectorAll('.subplan-zone')).map(zone=>({number:zone.dataset.subplanZone,left:zone.offsetLeft,right:zone.offsetLeft+zone.offsetWidth,top:zone.offsetTop,bottom:zone.offsetTop+zone.offsetHeight,center:zone.offsetLeft+zone.offsetWidth/2}));
@@ -427,6 +437,18 @@ try {
   })()`);
   const knownWaits=['ASYNC_NETWORK_IO','PAGEIOLATCH_SH','RESERVED_MEMORY_ALLOCATION_EXT','SOS_SCHEDULER_YIELD','MEMORY_ALLOCATION_EXT'];
   if (waitStats.labels[0]!=='Stats' || waitStats.labels[1]!=='WaitStats' || !knownWaits.every(type=>waitStats.names.includes(type)) || !waitStats.names.includes('UNKNOWN_WAIT_TEST') || waitStats.tips.some(tip=>!tip) || new Set(waitStats.indents).size!==1 || Math.abs(waitStats.async[0]-100)>0.1 || Math.abs(waitStats.async[1]-12.5)>0.1 || Math.abs(waitStats.page[0]-50)>0.1 || Math.abs(waitStats.page[1]-50)>0.1 || Math.abs(waitStats.scheduler[0]-75)>0.1 || Math.abs(waitStats.scheduler[1]-100)>0.1 || waitStats.tracks.some(color=>color==='rgba(0, 0, 0, 0)') || !waitStats.hiddenOnCost || !waitStats.restored) failures.push(`Wait statistics tree or dual scales failed: ${JSON.stringify(waitStats)}`);
+  await evaluate(`document.getElementById('menuBtn').click();document.getElementById('pasteBox').value=${JSON.stringify(memorySpillPlan)};document.getElementById('parsePasteBtn').click()`);
+  await retry(async () => {
+    if (!await evaluate("document.getElementById('viewer').classList.contains('visible') && document.querySelectorAll('.node-card').length===2")) throw new Error('Memory-spill plan did not render');
+  });
+  const memoryMetric = await evaluate(`(() => {
+    const button=document.querySelector('[data-metric="memory"]');button.click();
+    const row=nodeId=>{const card=document.querySelector('.node-card[data-node-id="'+nodeId+'"]'),item=document.querySelector('.tree-row[data-id="'+card.dataset.id+'"]'),width=series=>parseFloat(item.querySelector('[data-series="'+series+'"]').style.width);return {granted:width('granted'),used:width('used'),value:item.querySelector('.tree-value').textContent,title:item.querySelector('.tree-bar').title};};
+    const info=key=>{const item=document.querySelector('[data-memory-info="'+key+'"]');return {value:item.querySelector('.tree-value').textContent,width:parseFloat(item.querySelector('[data-series="memory-info"]')?.style.width)||0}};
+    const infoTree=document.querySelector('.memory-info-tree'),firstOperator=document.querySelector('.tree-row');
+    return {label:button.textContent,active:button.classList.contains('active'),root:row('0'),child:row('1'),legend:document.getElementById('metricNotice').textContent,infoTitle:infoTree.querySelector('.wait-heading .wait-name').textContent,infoCount:infoTree.querySelectorAll('[data-memory-info]').length,infoBeforeOperators:Boolean(infoTree.compareDocumentPosition(firstOperator)&Node.DOCUMENT_POSITION_FOLLOWING),grantedInfo:info('GrantedMemory'),usedInfo:info('MaxUsedMemory'),waitInfo:info('GrantWaitTime')};
+  })()`);
+  if (memoryMetric.label!=='Memory' || !memoryMetric.active || Math.abs(memoryMetric.root.granted-100)>0.1 || Math.abs(memoryMetric.root.used-50)>0.1 || memoryMetric.root.value!=='100 / 25' || !memoryMetric.root.title.includes('2.00 MB') || !memoryMetric.root.title.includes('1.00 MB') || Math.abs(memoryMetric.child.granted-50)>0.1 || Math.abs(memoryMetric.child.used-12.5)>0.1 || memoryMetric.child.value!=='50 / 10' || !memoryMetric.legend.includes('Granted memory') || !memoryMetric.legend.includes('tempdb reads / writes') || memoryMetric.infoTitle!=='MemoryGrantInfo' || memoryMetric.infoCount!==5 || !memoryMetric.infoBeforeOperators || memoryMetric.grantedInfo.value!=='4.00 MB' || Math.abs(memoryMetric.grantedInfo.width-100)>0.1 || memoryMetric.usedInfo.value!=='2.00 MB' || Math.abs(memoryMetric.usedInfo.width-50)>0.1 || memoryMetric.waitInfo.value!=='12 ms' || memoryMetric.waitInfo.width!==0) failures.push(`Memory metric scale, grant tree, or tempdb counters failed: ${JSON.stringify(memoryMetric)}`);
   await evaluate(`document.getElementById('menuBtn').click();document.getElementById('pasteBox').value=${JSON.stringify(longSqlPlan)};document.getElementById('parsePasteBtn').click()`);
   await retry(async () => {
     if (!await evaluate("document.getElementById('viewer').classList.contains('visible')")) throw new Error('Long-SQL plan did not render');
