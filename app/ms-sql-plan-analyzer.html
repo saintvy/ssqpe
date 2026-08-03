@@ -112,6 +112,7 @@
     .tree-bar .rows-estimate.severity-4 { background: #68252c; }
     .tree-bar .rows-actual.severity-4 { background: #ff5964; }
     .tree-value { flex: 0 0 72px; width: 72px; text-align: right; color: #c4cbd8; font-variant-numeric: tabular-nums; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .row-decimal { opacity: .35; }
     .wait-tree { --wait-row-bg: var(--surface); margin-bottom: 7px; padding-bottom: 7px; border-bottom: 1px solid var(--border); }
     .wait-row { position: relative; width: 100%; height: 32px; display: flex; align-items: center; padding: 0 9px; background: var(--wait-row-bg); }
     .wait-row.wait-heading { height: 29px; color: #cbd4e3; font-weight: 700; }
@@ -269,7 +270,7 @@
 <body>
   <div class="app">
     <header class="topbar">
-      <div class="brand"><span class="logo">SSQPE</span><span class="brand-title">SQL Server Query Plan Explorer</span><small class="app-version">v0.3.2</small></div>
+      <div class="brand"><span class="logo">SSQPE</span><span class="brand-title">SQL Server Query Plan Explorer</span><small class="app-version">v0.3.3</small></div>
       <div class="top-actions">
         <button class="btn hidden" id="menuBtn" data-i18n="backToMenu"></button>
         <button class="btn hidden" id="historyBtn"><span data-i18n="history"></span> <span id="historyCount"></span></button>
@@ -469,6 +470,19 @@
       if (Math.abs(n) >= 1e3) return (n / 1e3).toFixed(2).replace(/\.00$/, '') + 'K';
       if (Math.abs(n) < .001) return n.toExponential(2);
       return n.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-GB', { maximumFractionDigits: 3 });
+    };
+    const formatRowsText = value => {
+      if (value === null || value === undefined || value === '') return t('missing');
+      const n = Number(value);
+      if (!Number.isFinite(n)) return String(value);
+      return Math.abs(n) < 1000 ? n.toFixed(1) : formatNumber(n);
+    };
+    const formatRowsHtml = value => {
+      const text = formatRowsText(value);
+      const n = Number(value);
+      if (!Number.isFinite(n) || Math.abs(n) >= 1000) return esc(text);
+      const point = text.lastIndexOf('.');
+      return point < 0 ? esc(text) : `${esc(text.slice(0, point))}<span class="row-decimal">${esc(text.slice(point))}</span>`;
     };
     const formatMs = value => {
       if (value === null || value === undefined || !Number.isFinite(Number(value))) return '—';
@@ -1116,8 +1130,8 @@
           return `<div class="tree-row ${n.id===state.selectedId?'selected':''}" data-id="${esc(n.id)}" style="--depth:${n.depth}">
             ${treeToggle(n)}
             <div class="tree-name"><span class="tree-op">${n.duplicateGroup?'<span class="call-mark">↗</span>':''}${esc(n.physical)}</span><span class="tree-object">${esc(n.objectLabel || n.logical || '')}</span></div>
-            <div class="tree-metrics"><div class="tree-bar" title="${esc(t('estimate'))}: ${esc(formatNumber(estimated))}; ${esc(t('actual'))}: ${actual===null?t('missing'):esc(formatNumber(actual))}. ${esc(accuracyText)}">${rowsBarSegments(estimated,actual,maximum,severity)}</div>
-            <div class="tree-value" title="${esc(t('estimate'))} / ${esc(t('actual'))}">${formatNumber(estimated)} / ${actual===null?t('missing'):formatNumber(actual)}</div></div>
+            <div class="tree-metrics"><div class="tree-bar" title="${esc(t('estimate'))}: ${esc(formatRowsText(estimated))}; ${esc(t('actual'))}: ${esc(formatRowsText(actual))}. ${esc(accuracyText)}">${rowsBarSegments(estimated,actual,maximum,severity)}</div>
+            <div class="tree-value" title="${esc(t('estimate'))} / ${esc(t('actual'))}">${formatRowsHtml(estimated)} / ${formatRowsHtml(actual)}</div></div>
           </div>`;
         }
         if (state.metric === 'time') {
@@ -1301,7 +1315,7 @@
       return `<article class="node-card ${n.id===state.selectedId?'selected expanded':''} ${n.warnings.length?'warning':''} ${call?'call-node':''}" data-id="${esc(n.id)}" data-node-id="${esc(n.nodeId)}" data-subplan="${sub}" style="left:${visualX}px;top:${pos.y}px" title="${esc(t('clickNode'))}">
         <div class="node-top"><div class="node-title">${call?'↗ ':''}${esc(call ? subplanName : n.physical)}</div><div class="node-id">${performanceBadges(n,executionTime)}<span>#${esc(n.nodeId)}</span></div></div>
         <div class="node-subtitle">${esc(call ? n.physical + (subtitle?' · '+subtitle:'') : subtitle || n.logical || '—')}</div><div class="node-flags">${flags}</div>
-        <div class="node-stats"><div class="stat"><div class="stat-label">${esc(t('rowsEstimateActual'))}</div><div class="stat-value">${formatNumber(n.estimatedRows)} / ${actualRows===null?t('missing'):formatNumber(actualRows)}</div></div><div class="stat"><div class="stat-label">${esc(t('timeCost'))}</div><div class="stat-value">${formatMs(n.selfTime)} / ${formatNumber(n.selfCost)}</div></div></div>
+        <div class="node-stats"><div class="stat"><div class="stat-label">${esc(t('rowsEstimateActual'))}</div><div class="stat-value">${formatRowsHtml(n.estimatedRows)} / ${formatRowsHtml(actualRows)}</div></div><div class="stat"><div class="stat-label">${esc(t('timeCost'))}</div><div class="stat-value">${formatMs(n.selfTime)} / ${formatNumber(n.selfCost)}</div></div></div>
         <div class="node-expanded"><div class="expanded-grid"><div class="expanded-item"><b>${esc(t('actualCpuTime'))}</b><span>${n.runtime?.hasCPU?formatMs(n.runtime.ActualCPUms):t('missing')}</span></div><div class="expanded-item"><b>${esc(t('logicalReads'))}</b><span>${n.runtime?formatNumber(n.runtime.ActualLogicalReads):t('missing')}</span></div><div class="expanded-item"><b>${esc(t('executions'))}</b><span>${n.runtime?formatNumber(n.runtime.ActualExecutions):t('missing')}</span></div><div class="expanded-item"><b>${esc(t('outputColumns'))}</b><span>${formatNumber(n.outputs.length)}</span></div></div></div>
       </article>`;
     }
@@ -1363,7 +1377,7 @@
     }
 
     function detailRows(entries, formatter = v => v) {
-      return entries.filter(([,v]) => v !== '' && v !== null && v !== undefined).map(([k,v]) => `<div class="kv"><div class="k">${esc(k)}</div><div>${esc(formatter(v,k))}</div></div>`).join('');
+      return entries.filter(([,v]) => v !== '' && v !== null && v !== undefined).map(([k,v,html]) => `<div class="kv"><div class="k">${esc(k)}</div><div>${html === undefined ? esc(formatter(v,k)) : html}</div></div>`).join('');
     }
 
     function detailTsv(entries) {
@@ -1393,8 +1407,8 @@
       const actual = n.runtime;
       const actualRows = actualRowsPerExecution(n);
       const primary = [
-        [t('estimatedRows'), formatNumber(n.estimatedRows)], [t('actualRows'), actualRows === null ? t('missing') : formatNumber(actualRows)],
-        [t('actualRowsAllExecutions'), actual?.hasRows ? formatNumber(actual.ActualRows) : t('missing')],
+        [t('estimatedRows'), formatRowsText(n.estimatedRows), formatRowsHtml(n.estimatedRows)], [t('actualRows'), formatRowsText(actualRows), formatRowsHtml(actualRows)],
+        [t('actualRowsAllExecutions'), formatRowsText(actual?.hasRows ? actual.ActualRows : null), formatRowsHtml(actual?.hasRows ? actual.ActualRows : null)],
         [t('actualTime'), actual?.hasElapsed ? formatMs(actual.ActualElapsedms) : t('missing')], [t('exclusiveTime'), n.selfTime === null ? t('missing') : '≈ ' + formatMs(n.selfTime)], [t('actualCpuTime'), actual?.hasCPU ? formatMs(actual.ActualCPUms) : t('missing')],
         [t('subtreeCost'), formatNumber(n.estimatedCost)], [t('selfCost'), formatNumber(n.selfCost)],
         [t('executions'), actual ? formatNumber(actual.ActualExecutions) : t('missing')], [t('mode'), actual?.ActualExecutionMode || n.estimatedMode || 'Row'],
@@ -1404,10 +1418,10 @@
         [t('logicalReads'),formatNumber(actual.ActualLogicalReads)],[t('physicalReads'),formatNumber(actual.ActualPhysicalReads)],[t('readAhead'),formatNumber(actual.ActualReadAheads)],
         [t('lobLogicalReads'),formatNumber(actual.ActualLobLogicalReads)],[t('lobPhysicalReads'),formatNumber(actual.ActualLobPhysicalReads)],[t('scans'),formatNumber(actual.ActualScans)]
       ] : [];
-      const estimates = [['Estimate CPU',formatNumber(n.estimateCPU)],['Estimate IO',formatNumber(n.estimateIO)],[t('averageRowSize'),formatNumber(n.avgRowSize)+' B'],[t('estimatedRowsRead'),n.estimatedRowsRead===null?t('missing'):formatNumber(n.estimatedRowsRead)],[t('tableCardinality'),n.tableCardinality===null?t('missing'):formatNumber(n.tableCardinality)],['Rebinds / Rewinds',`${formatNumber(n.estimateRebinds)} / ${formatNumber(n.estimateRewinds)}`]];
+      const estimates = [['Estimate CPU',formatNumber(n.estimateCPU)],['Estimate IO',formatNumber(n.estimateIO)],[t('averageRowSize'),formatNumber(n.avgRowSize)+' B'],[t('estimatedRowsRead'),formatRowsText(n.estimatedRowsRead),formatRowsHtml(n.estimatedRowsRead)],[t('tableCardinality'),formatRowsText(n.tableCardinality),formatRowsHtml(n.tableCardinality)],['Rebinds / Rewinds',`${formatNumber(n.estimateRebinds)} / ${formatNumber(n.estimateRewinds)}`]];
       const objectRows = Object.entries(n.object);
       const attributeRows = Object.entries(n.attributes).filter(([k]) => !['NodeId','PhysicalOp','LogicalOp','EstimateRows','EstimatedTotalSubtreeCost','EstimateCPU','EstimateIO'].includes(k));
-      const threadTables = actual?.threadRows.map(row=>[[t('thread'),row.Thread],[t('rows'),row.ActualRows],[t('elapsed'),row.ActualElapsedms?formatMs(row.ActualElapsedms):t('missing')],[t('actualCpuTime'),row.ActualCPUms?formatMs(row.ActualCPUms):t('missing')],[t('logicalReads'),row.ActualLogicalReads||t('missing')]]) || [];
+      const threadTables = actual?.threadRows.map(row=>[[t('thread'),row.Thread],[t('rows'),formatRowsText(row.ActualRows),formatRowsHtml(row.ActualRows)],[t('elapsed'),row.ActualElapsedms?formatMs(row.ActualElapsedms):t('missing')],[t('actualCpuTime'),row.ActualCPUms?formatMs(row.ActualCPUms):t('missing')],[t('logicalReads'),row.ActualLogicalReads||t('missing')]]) || [];
       const copies = new Map();
       els.drawerBody.innerHTML = `
         <section class="detail-section">${detailHeading(t('primaryMetrics'),copies,detailTsv(primary))}${detailRows(primary)}${actual?.hasElapsed?`<div class="detail-note">${esc(t('exclusiveTimeExplanation'))}</div>`:''}</section>

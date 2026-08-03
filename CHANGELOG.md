@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-08-03
+
+### Changed
+
+- Row counts below one thousand now use one decimal place, with the decimal portion visually de-emphasized in the tree, graph cards, and operator details.
+
 ## [0.3.2] - 2026-08-03
 
 ### Fixed
