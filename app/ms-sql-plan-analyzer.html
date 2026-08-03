@@ -127,10 +127,14 @@
     .wait-scale { position: relative; height: 19px; overflow: hidden; border-radius: 4px; box-shadow: inset 0 0 0 1px #344052; font-variant-numeric: tabular-nums; }
     .wait-scale.time { background: rgba(79,208,164,.22); }
     .wait-scale.count { background: rgba(253,219,97,.22); }
+    .wait-scale.rows-estimate, .wait-scale.rows-actual { background: #0b1018; }
     .wait-scale-fill { position: absolute; inset: 0 auto 0 0; }
     .wait-scale.time .wait-scale-fill { background: #4fd0a4; }
     .wait-scale.count .wait-scale-fill { background: #fddb61; }
+    .wait-scale.rows-estimate .wait-scale-fill { background: #34485a; }
+    .wait-scale.rows-actual .wait-scale-fill { background: #4fd0a4; }
     .wait-scale-value { position: absolute; inset: 0 5px; display: flex; align-items: center; justify-content: flex-end; color: #eef4fa; font-size: 10px; text-shadow: 0 1px 2px #08100e; white-space: nowrap; }
+    .wait-scale-placeholder { height: 19px; }
     .memory-info-tree { --tree-row-bg: var(--surface); margin-bottom: 7px; padding-bottom: 7px; border-bottom: 1px solid var(--border); }
     .memory-info-metrics { position: sticky; right: 0; z-index: 5; flex: 0 0 215px; width: 215px; height: 100%; margin-right: -9px; padding: 0 9px; display: flex; align-items: center; gap: 7px; background: var(--tree-row-bg); }
     .tree-bar .memory-reference, .tree-bar .memory-info-value { position: absolute; z-index: 1; left: 0; top: 0; bottom: 0; min-width: 0; background: var(--memory); }
@@ -270,7 +274,7 @@
 <body>
   <div class="app">
     <header class="topbar">
-      <div class="brand"><span class="logo">SSQPE</span><span class="brand-title">SQL Server Query Plan Explorer</span><small class="app-version">v0.3.3</small></div>
+      <div class="brand"><span class="logo">SSQPE</span><span class="brand-title">SQL Server Query Plan Explorer</span><small class="app-version">v0.3.4</small></div>
       <div class="top-actions">
         <button class="btn hidden" id="menuBtn" data-i18n="backToMenu"></button>
         <button class="btn hidden" id="historyBtn"><span data-i18n="history"></span> <span id="historyCount"></span></button>
@@ -361,7 +365,7 @@
         resetView: 'Сбросить вид', details: 'Детали', keepDetailsHidden: 'Скрыть детали', showDetails: 'Показать детали', close: 'Закрыть', collapseSubtree: 'Свернуть дочернее поддерево', expandSubtree: 'Развернуть дочернее поддерево', queryText: 'Текст запроса', showQuery: 'Показать SQL-текст', queryUnavailable: 'SQL-текст отсутствует', showRawPlan: 'Показать исходный план', rawPlan: 'Исходный XML-план', copy: 'Скопировать', copySection: 'Скопировать раздел', copied: 'Текст скопирован', copyFailed: 'Не удалось скопировать текст',
         actualPlan: 'Фактический', estimatedPlan: 'Оценочный', statementsShort: 'запр.', nodesShort: 'узлов', query: 'Запрос', queryNumber: 'Запрос {number}', sqlServerBuild: 'сборка SQL Server', buildHint: 'Номер сборки SQL Server, сформировавшей этот план', totalExecutionTime: 'Общее время', totalExecutionTimeHint: 'Сумма QueryTimeStats.ElapsedTime по всем запросам плана', planningTime: 'Планирование', planningTimeHint: 'Сумма QueryPlan.CompileTime по всем запросам плана', peakQueryMemory: 'Пик памяти запроса', peakQueryMemoryHint: 'Максимальное значение MaxUsedMemory из memory grant, сообщённое SQL Server. Это не полное потребление памяти сервером.',
         noStatementGraph: 'В этом запросе нет графа операторов.', noGraphFromServer: 'Для этого запроса SQL Server не предоставил дерево операторов.', timeUnavailable: 'В XML отсутствует ActualElapsedms — фактическое время операторов неизвестно.',
-        subtree: 'Поддерево', currentNode: 'Текущий оператор', estimate: 'Оценка', actual: 'Факт', grantedMemory: 'Предоставленная память', usedMemory: 'Использованная память', tempDbReadsWrites: 'Чтения / записи tempdb', memoryUnavailable: 'Данные памяти оператора отсутствуют', noActualRows: 'Фактическое количество строк отсутствует', underestimated: 'Недооценено: фактических строк больше оценки', overestimated: 'Переоценено: фактических строк меньше оценки', closeEstimate: 'Оценка близка к факту', underShort: 'недооценка', overShort: 'переоценка', closeShort: 'до 10×', rowSeverity2: 'ошибка >10×', rowSeverity3: 'ошибка >100×', rowSeverity4: 'ошибка >1000×',
+        subtree: 'Поддерево', currentNode: 'Текущий оператор', estimate: 'Оценка', actual: 'Факт', grantedMemory: 'Предоставленная память', usedMemory: 'Использованная память', tempDbReadsWrites: 'Чтения / записи tempdb', memoryUnavailable: 'Данные памяти оператора отсутствуют', grantWaitTime: 'Ожидание выдачи памяти', queryOutputRows: 'Выходные строки запроса', operatorProcessedRows: 'Строки через операторы', operatorReadRows: 'Прочитанные строки', queryOutputRowsHint: 'Сумма выходных строк корневых операторов за выполнение.', operatorProcessedRowsHint: 'Сумма строк всех операторов; строки учитываются на нескольких уровнях.', operatorReadRowsHint: 'Сумма строк, прочитанных сообщившими эту метрику операторами.', noActualRows: 'Фактическое количество строк отсутствует', underestimated: 'Недооценено: фактических строк больше оценки', overestimated: 'Переоценено: фактических строк меньше оценки', closeEstimate: 'Оценка близка к факту', underShort: 'недооценка', overShort: 'переоценка', closeShort: 'до 10×', rowSeverity2: 'ошибка >10×', rowSeverity3: 'ошибка >100×', rowSeverity4: 'ошибка >1000×',
         clickNode: 'Нажмите, чтобы открыть характеристики', rowsEstimateActual: 'Строки за выполнение: оценка / факт', timeCost: 'Время / стоимость узла', executions: 'Выполнения', outputColumns: 'Выходные столбцы', actualCpuTime: 'Фактическое затраченное процессорное время', actualJoinType: 'Фактически выбранный тип соединения',
         flagWarning: 'Предупреждение оператора', flagParallel: 'Параллельное выполнение', flagBatch: 'Пакетный режим выполнения', slowNode: 'Медленный оператор: {percent}% общего времени ({time})', badRowEstimate: 'Плохая оценка строк: {direction} в {factor}× (за выполнение: оценка {estimated}, факт {actual})', underDirection: 'недооценка', overDirection: 'переоценка',
         operator: 'Оператор', primaryMetrics: 'Основные показатели', estimatedRows: 'Оценка строк за выполнение', actualRows: 'Фактические строки за выполнение', actualRowsAllExecutions: 'Фактические строки за все выполнения', actualTime: 'Фактическое elapsed-время', exclusiveTime: 'Время текущего оператора (оценка)', exclusiveTimeExplanation: 'Режимозависимая оценка критического пути: в Row Mode ActualElapsedms считается временем поддерева, а в Batch Mode — временем самого узла. Время Batch-узлов накапливается до ближайшего Row-узла; для перекрывающихся дочерних ветвей используется самая длинная. Параллельное и конвейерное выполнение не позволяет считать это точным измерением.', subtreeCost: 'Стоимость поддерева', selfCost: 'Собственная стоимость', mode: 'Режим',
@@ -383,7 +387,7 @@
         resetView: 'Reset view', details: 'Details', keepDetailsHidden: 'Keep details hidden', showDetails: 'Show details', close: 'Close', collapseSubtree: 'Collapse child subtree', expandSubtree: 'Expand child subtree', queryText: 'Query text', showQuery: 'Show SQL text', queryUnavailable: 'SQL text unavailable', showRawPlan: 'Show raw plan', rawPlan: 'Raw XML plan', copy: 'Copy', copySection: 'Copy section', copied: 'Text copied', copyFailed: 'Could not copy text',
         actualPlan: 'Actual', estimatedPlan: 'Estimated', statementsShort: 'queries', nodesShort: 'nodes', query: 'Query', queryNumber: 'Query {number}', sqlServerBuild: 'SQL Server build', buildHint: 'Build number of the SQL Server instance that produced this plan', totalExecutionTime: 'Total time', totalExecutionTimeHint: 'Sum of QueryTimeStats.ElapsedTime across all queries in the plan', planningTime: 'Planning', planningTimeHint: 'Sum of QueryPlan.CompileTime across all queries in the plan', peakQueryMemory: 'Peak query memory', peakQueryMemoryHint: 'Maximum MaxUsedMemory from the memory grant reported by SQL Server. This is not the server process\'s total memory usage.',
         noStatementGraph: 'This query has no operator graph.', noGraphFromServer: 'SQL Server did not provide an operator tree for this query.', timeUnavailable: 'ActualElapsedms is absent from the XML — operator elapsed time is unknown.',
-        subtree: 'Subtree', currentNode: 'Current operator', estimate: 'Estimate', actual: 'Actual', grantedMemory: 'Granted memory', usedMemory: 'Used memory', tempDbReadsWrites: 'tempdb reads / writes', memoryUnavailable: 'Operator memory data is unavailable', noActualRows: 'Actual row count is unavailable', underestimated: 'Underestimated: actual rows exceed the estimate', overestimated: 'Overestimated: actual rows are below the estimate', closeEstimate: 'Estimate is close to actual', underShort: 'underestimated', overShort: 'overestimated', closeShort: 'up to 10×', rowSeverity2: 'error >10×', rowSeverity3: 'error >100×', rowSeverity4: 'error >1000×',
+        subtree: 'Subtree', currentNode: 'Current operator', estimate: 'Estimate', actual: 'Actual', grantedMemory: 'Granted memory', usedMemory: 'Used memory', tempDbReadsWrites: 'tempdb reads / writes', memoryUnavailable: 'Operator memory data is unavailable', grantWaitTime: 'Memory grant wait', queryOutputRows: 'Query output rows', operatorProcessedRows: 'Rows through operators', operatorReadRows: 'Rows read', queryOutputRowsHint: 'Sum of root-operator output rows per execution.', operatorProcessedRowsHint: 'Sum across operators; rows are counted at multiple levels.', operatorReadRowsHint: 'Sum of rows read by operators reporting this metric.', noActualRows: 'Actual row count is unavailable', underestimated: 'Underestimated: actual rows exceed the estimate', overestimated: 'Overestimated: actual rows are below the estimate', closeEstimate: 'Estimate is close to actual', underShort: 'underestimated', overShort: 'overestimated', closeShort: 'up to 10×', rowSeverity2: 'error >10×', rowSeverity3: 'error >100×', rowSeverity4: 'error >1000×',
         clickNode: 'Click to open operator details', rowsEstimateActual: 'Rows per execution: estimate / actual', timeCost: 'Operator time / cost', executions: 'Executions', outputColumns: 'Output columns', actualCpuTime: 'Actual elapsed CPU time', actualJoinType: 'Actual join type',
         flagWarning: 'Operator warning', flagParallel: 'Parallel execution', flagBatch: 'Batch execution mode', slowNode: 'Slow operator: {percent}% of total time ({time})', badRowEstimate: 'Bad row estimate: {direction} by {factor}× (per execution: estimated {estimated}, actual {actual})', underDirection: 'underestimated', overDirection: 'overestimated',
         operator: 'Operator', primaryMetrics: 'Primary metrics', estimatedRows: 'Estimated rows per execution', actualRows: 'Actual rows per execution', actualRowsAllExecutions: 'Actual rows for all executions', actualTime: 'Actual elapsed time', exclusiveTime: 'Current-operator time (estimated)', exclusiveTimeExplanation: 'Execution-mode-aware critical-path estimate: ActualElapsedms is treated as subtree time in Row Mode and as node-only time in Batch Mode. Batch-node time accumulates down to the nearest Row node; the longest overlapping child branch is used. Parallel and pipelined execution prevents this from being an exact measurement.', subtreeCost: 'Subtree cost', selfCost: 'Self cost', mode: 'Mode',
@@ -528,6 +532,14 @@
         : runtime.ActualRows;
     }
 
+    function actualRowsReadPerExecution(node) {
+      const runtime = node.runtime;
+      if (!runtime?.hasRowsRead) return null;
+      return runtime.hasExecutions && runtime.ActualExecutions > 0
+        ? runtime.ActualRowsRead / runtime.ActualExecutions
+        : runtime.ActualRowsRead;
+    }
+
     function statementExecutionTime(statement) {
       const rootTimes = statement.roots.map(root => root.elapsed).filter(value => value !== null && value > 0);
       if (rootTimes.length) return Math.max(...rootTimes);
@@ -602,6 +614,7 @@
         hasElapsed: counters.some(el => el.hasAttribute('ActualElapsedms')),
         hasCPU: counters.some(el => el.hasAttribute('ActualCPUms')),
         hasRows: counters.some(el => el.hasAttribute('ActualRows')),
+        hasRowsRead: counters.some(el => el.hasAttribute('ActualRowsRead')),
         hasExecutions: counters.some(el => el.hasAttribute('ActualExecutions'))
       };
       sumKeys.forEach(k => result[k] = counters.reduce((sum, el) => sum + num(attr(el, k)), 0));
@@ -1048,10 +1061,11 @@
       return `<span class="rows-segment rows-actual severity-${severity}" data-series="actual" style="left:0;width:${actualWidth}%"></span><span class="rows-segment rows-estimate severity-${severity}" data-series="estimate" style="left:${actualWidth}%;width:${estimateWidth-actualWidth}%"></span>`;
     }
 
-    function renderWaitStats(statement) {
+    function renderTimeStats(statement) {
       const waits = statement?.waitStats || [];
-      if (!waits.length) return '';
-      const maxTime = Math.max(...waits.map(wait => wait.waitTimeMs), 0.0000001);
+      const grantWaitTime = optionalNumber(statement?.memoryGrant?.GrantWaitTime);
+      if (!waits.length && grantWaitTime === null) return '';
+      const maxTime = Math.max(...waits.map(wait => wait.waitTimeMs), grantWaitTime || 0, 0.0000001);
       const maxCount = Math.max(...waits.map(wait => wait.waitCount), 0.0000001);
       const description = type => t(`wait_${type}`) === `wait_${type}` ? t('waitUnknown', { type }) : t(`wait_${type}`);
       const scale = (kind, value, maximum, label, formatted) => {
@@ -1066,15 +1080,40 @@
           <div class="wait-metrics">${scale('time', wait.waitTimeMs, maxTime, t('time'), formatMs(wait.waitTimeMs))}${scale('count', wait.waitCount, maxCount, t('waitCount'), formatNumber(wait.waitCount))}</div>
         </div>`;
       }).join('');
+      const waitSection = waits.length ? `<div class="wait-row wait-heading" style="--depth:1"><div class="wait-name">${esc(t('waitStats'))}</div><div class="wait-metrics"><span class="wait-metric-label time">${esc(t('time'))}</span><span class="wait-metric-label count">${esc(t('waitCount'))}</span></div></div>${rows}` : '';
+      const grantSection = grantWaitTime !== null ? `<div class="wait-row wait-heading" style="--depth:1"><div class="wait-name">MemoryGrantInfo</div><div class="wait-metrics"><span class="wait-metric-label time">${esc(t('time'))}</span><span></span></div></div><div class="wait-row" data-time-stat="GrantWaitTime" style="--depth:2"><div class="wait-name" title="${esc(t('grantWaitTime'))}">GrantWaitTime</div><div class="wait-metrics">${scale('time',grantWaitTime,maxTime,t('grantWaitTime'),formatMs(grantWaitTime))}<div class="wait-scale-placeholder"></div></div></div>` : '';
       return `<section class="wait-tree" aria-label="${esc(t('stats'))}">
         <div class="wait-row wait-heading" style="--depth:0"><div class="wait-name">${esc(t('stats'))}</div><div class="wait-metrics"></div></div>
-        <div class="wait-row wait-heading" style="--depth:1"><div class="wait-name">${esc(t('waitStats'))}</div><div class="wait-metrics"><span class="wait-metric-label time">${esc(t('time'))}</span><span class="wait-metric-label count">${esc(t('waitCount'))}</span></div></div>
-        ${rows}
+        ${waitSection}${grantSection}
       </section>`;
     }
 
+    function renderRowStats(statement) {
+      if (!statement?.roots?.length) return '';
+      const nodes = flatten(statement.roots);
+      const completeSum = values => values.length && values.every(value => value !== null) ? values.reduce((sum, value) => sum + value, 0) : null;
+      const availableSum = values => {
+        const available = values.filter(value => value !== null);
+        return available.length ? available.reduce((sum, value) => sum + value, 0) : null;
+      };
+      const stats = [
+        { key:'output', label:t('queryOutputRows'), hint:t('queryOutputRowsHint'), estimated:statement.roots.reduce((sum,node)=>sum+node.estimatedRows,0), actual:completeSum(statement.roots.map(actualRowsPerExecution)) },
+        { key:'processed', label:t('operatorProcessedRows'), hint:t('operatorProcessedRowsHint'), estimated:nodes.reduce((sum,node)=>sum+node.estimatedRows,0), actual:availableSum(nodes.map(actualRowsPerExecution)) }
+      ];
+      const readEstimate = availableSum(nodes.map(node => node.estimatedRowsRead));
+      const readActual = availableSum(nodes.map(actualRowsReadPerExecution));
+      if (readEstimate !== null || readActual !== null) stats.push({ key:'read', label:t('operatorReadRows'), hint:t('operatorReadRowsHint'), estimated:readEstimate, actual:readActual });
+      const maximum = Math.max(...stats.flatMap(stat => [stat.estimated || 0, stat.actual || 0]), 0.0000001);
+      const scale = (kind, value, label) => {
+        const width = value === null ? 0 : Math.min(100, Math.max(0, 100 * value / maximum));
+        return `<div class="wait-scale rows-${kind}" title="${esc(label)}: ${esc(formatRowsText(value))}">${value===null?'':`<span class="wait-scale-fill" style="width:${width}%"></span>`}<span class="wait-scale-value">${formatRowsHtml(value)}</span></div>`;
+      };
+      const rows = stats.map(stat => `<div class="wait-row" data-row-stat="${stat.key}" style="--depth:2"><div class="wait-name wait-stat-name" tabindex="0" data-tip="${esc(stat.hint)}" title="${esc(stat.hint)}">${esc(stat.label)}</div><div class="wait-metrics">${scale('estimate',stat.estimated,t('estimate'))}${scale('actual',stat.actual,t('actual'))}</div></div>`).join('');
+      return `<section class="wait-tree rows-stats-tree" aria-label="${esc(t('stats'))}"><div class="wait-row wait-heading" style="--depth:0"><div class="wait-name">${esc(t('stats'))}</div><div class="wait-metrics"></div></div><div class="wait-row wait-heading" style="--depth:1"><div class="wait-name">RunTimeInformation</div><div class="wait-metrics"><span class="wait-metric-label">${esc(t('estimate'))}</span><span class="wait-metric-label time">${esc(t('actual'))}</span></div></div>${rows}</section>`;
+    }
+
     function renderMemoryGrantInfo(statement) {
-      const entries = Object.entries(statement?.memoryGrant || {});
+      const entries = Object.entries(statement?.memoryGrant || {}).filter(([key]) => key !== 'GrantWaitTime');
       if (!entries.length) return '';
       const isMemory = key => /Memory/i.test(key) && !/Time/i.test(key);
       const memoryValues = entries.filter(([key, value]) => isMemory(key) && Number.isFinite(Number(value))).map(([, value]) => Number(value));
@@ -1098,10 +1137,11 @@
     function renderTree() {
       const s = currentStatement();
       els.expandAllBtn.disabled = state.collapsedIds.size === 0;
-      const waitStats = state.metric === 'time' ? renderWaitStats(s) : '';
+      const timeStats = state.metric === 'time' ? renderTimeStats(s) : '';
+      const rowStats = state.metric === 'rows' ? renderRowStats(s) : '';
       const memoryGrantInfo = state.metric === 'memory' ? renderMemoryGrantInfo(s) : '';
       if (!s || !s.roots.length) {
-        els.tree.innerHTML = `<div class="tree-content">${waitStats}${memoryGrantInfo}<div style="padding:20px;color:var(--muted)">${esc(t('noStatementGraph'))}</div></div>`;
+        els.tree.innerHTML = `<div class="tree-content">${timeStats}${rowStats}${memoryGrantInfo}<div style="padding:20px;color:var(--muted)">${esc(t('noStatementGraph'))}</div></div>`;
         els.metricNotice.textContent = '';
         return;
       }
@@ -1174,7 +1214,7 @@
       const operatorWidth = 390 + Math.max(0, ...nodes.map(n => n.depth)) * 15;
       const waitWidth = state.metric === 'time' && s.waitStats?.length ? 270 + Math.max(...s.waitStats.map(wait => wait.type.length)) * 7 : 0;
       const contentWidth = Math.max(operatorWidth, waitWidth);
-      els.tree.innerHTML = `<div class="tree-content" style="width:${contentWidth}px">${waitStats}${memoryGrantInfo}${rows}</div>`;
+      els.tree.innerHTML = `<div class="tree-content" style="width:${contentWidth}px">${timeStats}${rowStats}${memoryGrantInfo}${rows}</div>`;
       $$('#metricSwitch button', els.metricSwitch).forEach(b => b.classList.toggle('active', b.dataset.metric === state.metric));
     }
 

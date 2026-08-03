@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-08-03
+
+### Added
+
+- The Rows view now starts with query-wide output, operator-throughput, and rows-read statistics derived from `RunTimeInformation`.
+
+### Changed
+
+- `MemoryGrantInfo.GrantWaitTime` moved from the Memory summary to the Time statistics tree.
+
 ## [0.3.3] - 2026-08-03
 
 ### Changed
